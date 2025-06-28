@@ -1,0 +1,26 @@
+{
+    "name": "Cyrus AI",
+    "short_name": "Cyrus",
+    "start_url": "/index.html",
+    "display": "standalone",
+    "background_color": "#121212",
+    "theme_color": "#1e1e1e",
+    "description": "An AI chatbot that lives in your browser.",
+    "icons": [
+        {
+            "src": "https://www.w3.org/TR/appmanifest/images/icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+        }
+    ],
+    "share_target": {
+        "action": "/index.html",
+        "method": "GET",
+        "params": {
+            "title": "title",
+            "text": "text",
+            "url": "url"
+        }
+    }
+}
