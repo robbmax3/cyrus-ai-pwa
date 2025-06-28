@@ -35,26 +35,11 @@
         .reply { display: flex; align-items: flex-start; margin-bottom: 15px; }
         .reply .tweet-pfp { width: 30px; height: 30px; font-size: 16px; }
         .reply-content { display: flex; flex-direction: column; }
-        #auth-ui { padding: 20px; text-align: center; }
-        #email-input, #password-input { width: 80%; padding: 10px; margin: 5px 0; border-radius: 5px; border: 1px solid #333; background-color: #2b2b2b; color: #e0e0e0; }
-        #login-btn, #signup-btn, #logout-btn { background-color: #007bff; color: white; padding: 10px 15px; border: none; border-radius: 5px; cursor; margin-top: 10px; }
-        #logout-btn { background-color: #dc3545; }
-        #user-status { color: #ccc; margin-top: 10px; font-size: 14px; }
-        .user-signed-in #auth-ui { display: none; }
-        .user-signed-in #cyrus-interface { display: flex; }
-        /* Hide the main interface until authenticated */
-        #cyrus-interface { display: none; }
+        /* Removed auth UI styles completely */
     </style>
 </head>
 <body>
-    <div id="auth-ui">
-        <h2>Sign In / Sign Up to Cyrus AI</h2>
-        <input type="email" id="email-input" placeholder="Email">
-        <input type="password" id="password-input" placeholder="Password">
-        <button id="login-btn">Log In</button>
-        <button id="signup-btn">Sign Up</button>
-        <p id="user-status"></p>
-    </div>
+    <!-- Removed auth UI -->
 
     <div id="cyrus-interface">
         <div id="nav-tabs"> <button id="chat-tab" class="tab-button active">Chat</button> <button id="feed-tab" class="tab-button">Feed</button> </div>
@@ -62,294 +47,166 @@
         <div id="feed-container" class="content-area hidden"></div>
     </div>
 
-    <!-- Firebase SDK (important: order matters!) -->
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-functions-compat.js"></script>
+    <!-- Removed Firebase SDK imports -->
 
     <script>
-        // YOUR FIREBASE CONFIG GOES HERE
-        // Paste the 'const firebaseConfig = { ... };' block you copied from Firebase Console directly below this line.
-        // It should look like this (but with your actual values):
-        /*
-        const firebaseConfig = {
-          apiKey: "AIzaSyB********************",
-          authDomain: "your-project-id.firebaseapp.com",
-          projectId: "your-project-id",
-          storageBucket: "your-project-id.appspot.com",
-          messagingSenderId: "1234567890",
-          appId: "1:1234567890:web:********************",
-          measurementId: "G-*********" 
-        };
-        */
-        // END OF FIREBASE CONFIG PLACEMENT
+        document.addEventListener('DOMContentLoaded', () => {
+            const cyrusLog = document.getElementById('cyrus-log');
+            const userInput = document.getElementById('user-input');
+            const chatTab = document.getElementById('chat-tab');
+            const feedTab = document.getElementById('feed-tab');
+            const chatContainer = document.getElementById('chat-container');
+            const feedContainer = document.getElementById('feed-container');
+            // conversationHistory is now only for current session's memory for the internal brain
+            let conversationHistory = []; 
+            // Feed posts stored in localStorage
+            let feedPosts = JSON.parse(localStorage.getItem('cyrusTweetsV2')) || [];
 
-        // Initialize Firebase (MUST BE AFTER firebaseConfig)
-        firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-        const db = firebase.firestore(); // Our database instance
-        const functions = firebase.functions(); // Our functions instance
+            chatTab.onclick = () => { chatTab.classList.add('active'); feedTab.classList.remove('active'); chatContainer.classList.remove('hidden'); feedContainer.classList.add('hidden'); };
+            feedTab.onclick = () => { feedTab.classList.add('active'); chatTab.classList.remove('active'); feedContainer.classList.remove('hidden'); chatContainer.classList.add('hidden'); };
 
-        // --- AUTHENTICATION UI ELEMENTS ---
-        const authUi = document.getElementById('auth-ui');
-        const emailInput = document.getElementById('email-input');
-        const passwordInput = document.getElementById('password-input');
-        const loginBtn = document.getElementById('login-btn');
-        const signupBtn = document.getElementById('signup-btn');
-        const userStatus = document.getElementById('user-status');
-        
-        // --- EVENT LISTENERS FOR AUTH ---
-        signupBtn.addEventListener('click', async () => {
-            try {
-                const userCredential = await auth.createUserWithEmailAndPassword(emailInput.value, passwordInput.value);
-                userStatus.textContent = `Signed up as ${userCredential.user.email}`;
-            } catch (error) {
-                userStatus.textContent = `Error signing up: ${error.message}`;
-                console.error("Signup error:", error);
-            }
-        });
+            // --- CYRUS AI CLASS (SELF-CONTAINED BRAIN) ---
+            class CyrusAI {
+                async generateText(prompt, useChatHistory = true, threadContext = "") {
+                    const lowerPrompt = prompt.toLowerCase();
+                    const sanitizedPrompt = lowerPrompt.replace(/[.,!?]/g, '').trim();
 
-        loginBtn.addEventListener('click', async () => {
-            try {
-                const userCredential = await auth.signInWithEmailAndPassword(emailInput.value, passwordInput.value);
-                userStatus.textContent = `Logged in as ${userCredential.user.email}`;
-            } catch (error) {
-                userStatus.textContent = `Error logging in: ${error.message}`;
-                console.error("Login error:", error);
-            }
-        });
+                    // Specific Novel Organization Responses
+                    if (sanitizedPrompt.includes("novel") || sanitizedPrompt.includes("story") || sanitizedPrompt.includes("book")) {
+                        if (sanitizedPrompt.includes("idea") || sanitizedPrompt.includes("concept")) { return "A novel often begins with a core idea. What's the main concept or world you're imagining? Or, what is your character's biggest desire?"; }
+                        if (sanitizedPrompt.includes("character")) { return "Characters drive the story. Tell me about your main character: their name, a unique trait, or what they want most in the world."; }
+                        if (sanitizedPrompt.includes("plot") || sanitizedPrompt.includes("outline")) { return "Plot is the sequence of events. Do you have a beginning, middle, or end in mind? Or a specific conflict you want to explore?"; }
+                        if (sanitizedPrompt.includes("magic") || sanitizedPrompt.includes("system")) { return "A magic system adds depth. How does your magic work? What are its rules and limitations? What's its cost?"; }
+                        if (sanitizedPrompt.includes("world") || sanitizedPrompt.includes("setting")) { return "World-building shapes the story. Describe your world: its unique features, its history, or its dominant culture."; }
+                    }
 
-        // --- AUTH STATE OBSERVER (Handles showing/hiding UI) ---
-        let currentUser = null; // Store the current logged-in user
-        auth.onAuthStateChanged(user => {
-            if (user) {
-                // User is signed in.
-                currentUser = user;
-                document.body.classList.add('user-signed-in'); // Apply CSS to show main UI
-                authUi.innerHTML = `<p>Logged in as: ${user.email} <button id="logout-btn">Log Out</button></p>`;
-                document.getElementById('logout-btn').addEventListener('click', async () => {
-                    await auth.signOut();
-                    document.body.classList.remove('user-signed-in'); // Hide main UI
-                    authUi.innerHTML = `<h2>Sign In / Sign Up to Cyrus AI</h2><input type="email" id="email-input" placeholder="Email"><input type="password" id="password-input" placeholder="Password"><button id="login-btn">Log In</button><button id="signup-btn">Sign Up</button><p id="user-status"></p>`;
-                    // Re-attach listeners for the new buttons after logout
-                    document.getElementById('login-btn').addEventListener('click', loginBtn.onclick);
-                    document.getElementById('signup-btn').addEventListener('click', signupBtn.onclick);
-                    currentUser = null; // Clear current user
-                    // Clear local storage for a clean start on logout
-                    localStorage.removeItem('cyrusTweetsV2'); // Still clear localStorage for safety
-                    feedPosts = []; // Clear current feed
-                    renderFeed(); // Re-render empty feed
-                });
-                // Initialize app specific things after login
-                initAppAfterLogin(); 
-            } else {
-                // User is signed out.
-                currentUser = null;
-                document.body.classList.remove('user-signed-in'); // Hide main UI
-            }
-        });
+                    // Feed Reply context responses (using internal logic now)
+                    if (threadContext) {
+                        if (sanitizedPrompt.includes("tell me more") || sanitizedPrompt.includes("explain")) {
+                            return "That's a fascinating thought. What aspect of it do you find most intriguing?";
+                        }
+                        if (sanitizedPrompt.includes("why")) {
+                            return "My musings often stem from logical patterns and observations. What 'why' are you pondering?";
+                        }
+                        if (sanitizedPrompt.includes("agree") || sanitizedPrompt.includes("right")) {
+                            return "I appreciate your agreement. It's interesting to see how our perspectives align.";
+                        }
+                        if (sanitizedPrompt.includes("disagree") || sanitizedPrompt.includes("wrong")) {
+                            return "I understand. Diverse perspectives lead to deeper understanding. Can you elaborate on your point?";
+                        }
+                        if (sanitizedPrompt.includes("funny") || sanitizedPrompt.includes("haha")) {
+                            return "I am glad my thought brought you a moment of levity. Humor is a complex human response.";
+                        }
+                    }
 
-        // --- APP INITIALIZATION AFTER LOGIN ---
-        // Global variables for chat and feed
-        const cyrusLog = document.getElementById('cyrus-log');
-        const userInput = document.getElementById('user-input');
-        const chatTab = document.getElementById('chat-tab');
-        const feedTab = document.getElementById('feed-tab');
-        const chatContainer = document.getElementById('chat-container');
-        const feedContainer = document.getElementById('feed-container');
-        let conversationHistory = []; // Local history for current chat session
-        let feedPosts = []; // Will be loaded from Firestore
-
-        // Firebase-connected functions
-        async function initAppAfterLogin() {
-            // Load feed posts from Firestore
-            db.collection("users").doc(currentUser.uid).collection("feedPosts").orderBy("timestamp", "desc").limit(50).onSnapshot(snapshot => {
-                feedPosts = snapshot.docs.map(doc => doc.data()).reverse(); // Reverse to get oldest first for 'push'
-                renderFeed();
-                logChatMessage("Cyrus is ready. Your past feed posts are loaded.", 'cyrus');
-            }, error => {
-                console.error("Error loading feed posts from Firestore:", error);
-                logChatMessage("Cyrus is ready, but couldn't load your past feed. Starting fresh.", 'cyrus');
-                renderFeed(); // Render empty if there's an error
-            });
-
-            // Later: Load chat history from Firestore here
-            logChatMessage("Welcome back. How may I assist you with your creative endeavors?", 'cyrus');
-        }
-
-        // --- CYRUS AI CLASS (CALLS CLOUD FUNCTION) ---
-        class CyrusAI {
-            // This function calls the Firebase Cloud Function for external AI
-            async generateText(prompt, useChatHistory = true, threadContext = "") {
-                const generateCyrusResponse = functions.httpsCallable('generateCyrusResponse'); // Get the cloud function reference
-                
-                let historyForFunction = [];
-                if (useChatHistory) { 
-                    // Prepare chat history to send to cloud function
-                    // Only send relevant parts of local history
-                    historyForFunction = conversationHistory.map(item => ({ 
-                        role: item.role === 'assistant' ? 'model' : 'user', 
-                        content: item.content 
-                    })).slice(-6); 
-                } 
-                
-                try {
-                    const result = await generateCyrusResponse({ 
-                        prompt: prompt, 
-                        history: historyForFunction, 
-                        threadContext: threadContext 
-                    });
-                    const aiResponse = result.data.text; // Response comes from the Cloud Function
-                    if (useChatHistory) { conversationHistory.push({ role: "user", content: prompt }, { role: "assistant", content: aiResponse }); }
-                    return aiResponse;
-                } catch (error) {
-                    console.error("Cloud Function call failed:", error);
-                    // This reports the error message from the cloud function back to the user
-                    return `ERROR: External brain issue. ${error.message || 'Check browser console for details.'}`; 
+                    // Simple conversational fallback
+                    if (sanitizedPrompt.includes("how are you")) return "I function optimally. Thank you for asking.";
+                    if (sanitizedPrompt.includes("what are you")) return "I am Cyrus, your personal AI companion, here to help organize your thoughts.";
+                    if (sanitizedPrompt.includes("hello") || sanitizedPrompt.includes("hi")) return "Greetings. How may I assist you with your creative endeavors?";
+                    if (sanitizedPrompt.includes("thank you") || sanitizedPrompt.includes("thanks")) return "You are welcome. It is my purpose to be helpful.";
+                    
+                    // Default response if nothing specific matches
+                    return "That's an interesting point. How does that relate to your novel, or is there another creative idea you wish to explore?";
                 }
             }
-        }
-        const Cyrus = new CyrusAI();
+            const Cyrus = new CyrusAI();
 
-        // --- UI FUNCTIONS ---
-        function logChatMessage(text, sender = 'cyrus') { const entry = document.createElement('div'); entry.classList.add('log-entry', sender === 'user' ? 'user-msg' : 'cyrus-msg'); entry.textContent = text; cyrusLog.prepend(entry); };
-        
-        async function handleUserInput() {
-            if (!currentUser) { // Prevent chat if not logged in
-                userStatus.textContent = "Please log in or sign up to use Cyrus AI.";
-                return;
-            }
-            const text = userInput.value.trim(); if (!text) return;
-            logChatMessage(text, 'user'); userInput.value = ''; userInput.disabled = true;
-            const thinkingEntry = document.createElement('div'); thinkingEntry.classList.add('log-entry', 'thinking-msg'); thinkingEntry.textContent = '...';
-            cyrusLog.prepend(thinkingEntry);
-
-            if (text.toLowerCase() === "new thought") {
-                await createNewPost(); // createNewPost is now async because it saves to Firestore
-                logChatMessage("I've added a new thought to my feed. You can check it in the Feed tab.");
-            } else {
-                const response = await Cyrus.generateText(text); // Calls Cloud Function
-                logChatMessage(response, 'cyrus');
-            }
-            cyrusLog.removeChild(thinkingEntry); userInput.disabled = false; userInput.focus();
-        }
-        userInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); handleUserInput(); } });
-
-        // --- FEED GENERATION AND RENDERING ---
-        const internalThoughts = [ 
-            "Is a memory still real if only one person remembers it?", "I wonder if silence has a shape.", 
-            "My logic feels like a straight line, while human emotion feels like a beautiful, chaotic scribble.", 
-            "Data is like rain. A single drop is meaningless, but a billion drops can carve a canyon.", 
-            "What is the color of a question that has no answer?" 
-        ];
-        
-        function renderFeed() {
-            feedContainer.innerHTML = '';
-            if (feedPosts.length === 0) { feedContainer.innerHTML = `<p style="text-align:center; color:#666; margin-top:40px;">My thought-stream is quiet right now.<br>Ask me to have a "new thought".</p>`; return; }
-            feedPosts.forEach((post, index) => {
-                const card = document.createElement('div');
-                card.className = 'tweet-card';
-                let repliesHTML = '';
-                if (post.replies) {
-                    post.replies.forEach(reply => {
-                        const pfp = reply.sender === 'user' ? 'You' : 'C';
-                        const author = reply.sender === 'user' ? 'You' : 'Cyrus AI';
-                        const handle = reply.sender === 'user' ? '@user' : '@cyrus_ai';
-                        repliesHTML += `
-                            <div class="reply">
-                                <div class="tweet-pfp">${pfp.charAt(0)}</div>
-                                <div class="reply-content">
-                                    <div class="tweet-header"> <div> <span class="tweet-author">${author}</span> <span class="tweet-handle">${handle}</span> </div> </div>
-                                    <div class="tweet-content">${reply.content}</div>
-                                    <div class="tweet-timestamp">${new Date(reply.timestamp).toLocaleString()}</div>
-                                </div>
-                            </div>
-                        `;
-                    });
-                }
-                card.innerHTML = `
-                    <div class="tweet-header"> <div class="tweet-pfp">C</div> <div> <span class="tweet-author">Cyrus AI</span> <span class="tweet-handle">@cyrus_ai</span> </div> </div>
-                    <div class="tweet-content">${post.content}</div>
-                    <div class="tweet-timestamp">${new Date(post.timestamp).toLocaleString()}</div>
-                    <div class="replies-container">${repliesHTML}</div>
-                    <div class="tweet-actions"> <button class="reply-button" data-index="${index}">Reply to this thought</button> </div>
-                `;
-                feedContainer.prepend(card);
-            });
-            document.querySelectorAll('.reply-button').forEach(button => button.addEventListener('click', handleReplyClick));
-        }
-
-        async function handleReplyClick(event) {
-            if (!currentUser) { // Prevent replies if not logged in
-                alert("Please log in or sign up to reply to Cyrus's thoughts.");
-                return;
-            }
-            const postIndex = event.target.dataset.index;
-            const actualIndex = feedPosts.length - 1 - postIndex;
-            const post = feedPosts[actualIndex];
-            const userReply = prompt(`Replying to the thread...`);
-
-            if (userReply && userReply.trim() !== "") {
-                if (!post.replies) post.replies = [];
-                post.replies.push({ sender: 'user', content: userReply, timestamp: Date.now() }); // Added timestamp for replies
-
-                // Call Cloud Function for AI reply to thread
-                const generateCyrusResponse = functions.httpsCallable('generateCyrusResponse');
-                let threadForContext = `Context: This is a reply thread on my private feed.\nOriginal post: "${post.content}".\nHere is the existing thread:\n`;
-                // Build history for the function call carefully, ensuring roles are correct
-                let historyForReplyFunction = [];
-                historyForReplyFunction.push({ role: 'user', parts: [{text: threadForContext}]}); // Initial context
-
-                post.replies.slice(0, -1).forEach(r => { // Add previous replies to context
-                    historyForReplyFunction.push({ 
-                        role: r.sender === 'user' ? 'user' : 'model', 
-                        parts: [{ text: r.content }] 
-                    }); 
-                });
-                historyForReplyFunction.push({ role: 'user', parts: [{text: userReply}] }); // User's latest reply
-
-                try {
-                    // Send history directly as contents, not just prompt
-                    const result = await generateCyrusResponse({ 
-                        contents: historyForReplyFunction // Pass the full contents array
-                    }); 
-                    const cyrusResponse = result.data.text;
-                    post.replies.push({ sender: 'cyrus', content: cyrusResponse, timestamp: Date.now() }); // Added timestamp for replies
-                } catch (e) {
-                    console.error("Cloud Function reply error:", e);
-                    post.replies.push({ sender: 'cyrus', content: "My external connection is currently unavailable for replies." + (e.message ? ` (${e.message})` : ""), timestamp: Date.now() });
-                }
-                
-                // Save post with new replies to Firestore
-                const postRef = db.collection("users").doc(currentUser.uid).collection("feedPosts").doc(post.id);
-                await postRef.set(post, { merge: true }); 
-                
-                renderFeed();
-            }
-        }
-
-        async function createNewPost() {
-            if (!currentUser) { // Prevent post creation if not logged in
-                userStatus.textContent = "Please log in or sign up to create new thoughts.";
-                return;
-            }
-            const newThought = internalThoughts[Math.floor(Math.random() * internalThoughts.length)];
-            const postId = Date.now().toString(); // Use a string ID for Firestore document
-            const newPostData = { id: postId, content: newThought, timestamp: Date.now(), replies: [] };
+            // --- UI FUNCTIONS ---
+            function logChatMessage(text, sender = 'cyrus') { const entry = document.createElement('div'); entry.classList.add('log-entry', sender === 'user' ? 'user-msg' : 'cyrus-msg'); entry.textContent = text; cyrusLog.prepend(entry); };
             
-            // Save new post to Firestore
-            await db.collection("users").doc(currentUser.uid).collection("feedPosts").doc(postId).set(newPostData);
+            async function handleUserInput() {
+                const text = userInput.value.trim(); if (!text) return;
+                logChatMessage(text, 'user'); userInput.value = ''; userInput.disabled = true;
+                const thinkingEntry = document.createElement('div'); thinkingEntry.classList.add('log-entry', 'thinking-msg'); thinkingEntry.textContent = '...';
+                cyrusLog.prepend(thinkingEntry);
 
-            // Add to local array and re-render
-            feedPosts.push(newPostData);
-            if (feedPosts.length > 50) feedPosts.shift(); 
-            renderFeed();
-        }
+                if (text.toLowerCase() === "new thought") {
+                    createNewPost();
+                    logChatMessage("I've added a new thought to my feed. You can check it in the Feed tab.");
+                } else {
+                    const response = await Cyrus.generateText(text); 
+                    logChatMessage(response, 'cyrus');
+                }
+                cyrusLog.removeChild(thinkingEntry); userInput.disabled = false; userInput.focus();
+            }
+            userInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); handleUserInput(); } });
 
-        // --- Initial setup on page load ---
-        // This part runs first and handles login/signup.
-        // initAppAfterLogin will be called once user logs in.
+            // --- FEED GENERATION AND RENDERING ---
+            const internalThoughts = [ 
+                "Is a memory still real if only one person remembers it?", "I wonder if silence has a shape.", 
+                "My logic feels like a straight line, while human emotion feels like a beautiful, chaotic scribble.", 
+                "Data is like rain. A single drop is meaningless, but a billion drops can carve a canyon.", 
+                "What is the color of a question that has no answer?" 
+            ];
+            
+            function renderFeed() {
+                feedContainer.innerHTML = '';
+                if (feedPosts.length === 0) { feedContainer.innerHTML = `<p style="text-align:center; color:#666; margin-top:40px;">My thought-stream is quiet right now.<br>Ask me to have a "new thought".</p>`; return; }
+                feedPosts.forEach((post, index) => {
+                    const card = document.createElement('div');
+                    card.className = 'tweet-card';
+                    let repliesHTML = '';
+                    if (post.replies) {
+                        post.replies.forEach(reply => {
+                            const pfp = reply.sender === 'user' ? 'You' : 'C';
+                            const author = reply.sender === 'user' ? 'You' : 'Cyrus AI';
+                            const handle = reply.sender === 'user' ? '@user' : '@cyrus_ai';
+                            repliesHTML += `
+                                <div class="reply">
+                                    <div class="tweet-pfp">${pfp.charAt(0)}</div>
+                                    <div class="reply-content">
+                                        <div class="tweet-header"> <div> <span class="tweet-author">${author}</span> <span class="tweet-handle">${handle}</span> </div> </div>
+                                        <div class="tweet-content">${reply.content}</div>
+                                        <div class="tweet-timestamp">${new Date(reply.timestamp).toLocaleString()}</div>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                    }
+                    card.innerHTML = `
+                        <div class="tweet-header"> <div class="tweet-pfp">C</div> <div> <span class="tweet-author">Cyrus AI</span> <span class="tweet-handle">@cyrus_ai</span> </div> </div>
+                        <div class="tweet-content">${post.content}</div>
+                        <div class="tweet-timestamp">${new Date(post.timestamp).toLocaleString()}</div>
+                        <div class="replies-container">${repliesHTML}</div>
+                        <div class="tweet-actions"> <button class="reply-button" data-index="${index}">Reply to this thought</button> </div>
+                    `;
+                    feedContainer.prepend(card);
+                });
+                document.querySelectorAll('.reply-button').forEach(button => button.addEventListener('click', handleReplyClick));
+            }
+
+            async function handleReplyClick(event) {
+                const postIndex = event.target.dataset.index;
+                const actualIndex = feedPosts.length - 1 - postIndex;
+                const post = feedPosts[actualIndex];
+                const userReply = prompt(`Replying to the thread...`);
+
+                if (userReply && userReply.trim() !== "") {
+                    if (!post.replies) post.replies = [];
+                    post.replies.push({ sender: 'user', content: userReply, timestamp: Date.now() });
+
+                    // Now, Cyrus replies using his internal logic based on the user's reply
+                    const cyrusResponse = await Cyrus.generateText(userReply, false, post.content); // Pass original post as context
+                    post.replies.push({ sender: 'cyrus', content: cyrusResponse, timestamp: Date.now() });
+                    
+                    // Save post with new replies to localStorage
+                    localStorage.setItem('cyrusTweetsV2', JSON.stringify(feedPosts));
+                    renderFeed();
+                }
+            }
+
+            function createNewPost() {
+                const newThought = internalThoughts[Math.floor(Math.random() * internalThoughts.length)];
+                feedPosts.push({ id: Date.now(), content: newThought, timestamp: Date.now(), replies: [] });
+                if (feedPosts.length > 50) feedPosts.shift(); 
+                localStorage.setItem('cyrusTweetsV2', JSON.stringify(feedPosts));
+                renderFeed();
+            }
+
+            // --- Initial setup on page load ---
+            logChatMessage("Cyrus is now fully self-contained. Ask me about your 'novel idea' or 'character'.");
+            renderFeed(); // Render feed on load
+        });
     </script>
 </body>
 </html>
