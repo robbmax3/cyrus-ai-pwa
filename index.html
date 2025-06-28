@@ -37,7 +37,7 @@
         .reply-content { display: flex; flex-direction: column; }
         #auth-ui { padding: 20px; text-align: center; }
         #email-input, #password-input { width: 80%; padding: 10px; margin: 5px 0; border-radius: 5px; border: 1px solid #333; background-color: #2b2b2b; color: #e0e0e0; }
-        #login-btn, #signup-btn, #logout-btn { background-color: #007bff; color: white; padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; margin-top: 10px; }
+        #login-btn, #signup-btn, #logout-btn { background-color: #007bff; color: white; padding: 10px 15px; border: none; border-radius: 5px; cursor; margin-top: 10px; }
         #logout-btn { background-color: #dc3545; }
         #user-status { color: #ccc; margin-top: 10px; font-size: 14px; }
         .user-signed-in #auth-ui { display: none; }
@@ -180,6 +180,7 @@
 
         // --- CYRUS AI CLASS (CALLS CLOUD FUNCTION) ---
         class CyrusAI {
+            // This function calls the Firebase Cloud Function for external AI
             async generateText(prompt, useChatHistory = true, threadContext = "") {
                 const generateCyrusResponse = functions.httpsCallable('generateCyrusResponse'); // Get the cloud function reference
                 
@@ -261,6 +262,7 @@
                                 <div class="reply-content">
                                     <div class="tweet-header"> <div> <span class="tweet-author">${author}</span> <span class="tweet-handle">${handle}</span> </div> </div>
                                     <div class="tweet-content">${reply.content}</div>
+                                    <div class="tweet-timestamp">${new Date(reply.timestamp).toLocaleString()}</div>
                                 </div>
                             </div>
                         `;
@@ -290,21 +292,33 @@
 
             if (userReply && userReply.trim() !== "") {
                 if (!post.replies) post.replies = [];
-                post.replies.push({ sender: 'user', content: userReply });
+                post.replies.push({ sender: 'user', content: userReply, timestamp: Date.now() }); // Added timestamp for replies
 
                 // Call Cloud Function for AI reply to thread
                 const generateCyrusResponse = functions.httpsCallable('generateCyrusResponse');
                 let threadForContext = `Context: This is a reply thread on my private feed.\nOriginal post: "${post.content}".\nHere is the existing thread:\n`;
-                post.replies.slice(0, -1).forEach(r => { threadForContext += `${r.sender === 'user' ? 'User' : 'Cyrus'}: ${r.content}\n`; });
-                threadForContext += `User's latest reply: "${userReply}"\n\nYour next reply in the thread:`;
-                
+                // Build history for the function call carefully, ensuring roles are correct
+                let historyForReplyFunction = [];
+                historyForReplyFunction.push({ role: 'user', parts: [{text: threadForContext}]}); // Initial context
+
+                post.replies.slice(0, -1).forEach(r => { // Add previous replies to context
+                    historyForReplyFunction.push({ 
+                        role: r.sender === 'user' ? 'user' : 'model', 
+                        parts: [{ text: r.content }] 
+                    }); 
+                });
+                historyForReplyFunction.push({ role: 'user', parts: [{text: userReply}] }); // User's latest reply
+
                 try {
-                    const result = await generateCyrusResponse({ prompt: userReply, history: [], threadContext: threadForContext }); 
+                    // Send history directly as contents, not just prompt
+                    const result = await generateCyrusResponse({ 
+                        contents: historyForReplyFunction // Pass the full contents array
+                    }); 
                     const cyrusResponse = result.data.text;
-                    post.replies.push({ sender: 'cyrus', content: cyrusResponse });
+                    post.replies.push({ sender: 'cyrus', content: cyrusResponse, timestamp: Date.now() }); // Added timestamp for replies
                 } catch (e) {
                     console.error("Cloud Function reply error:", e);
-                    post.replies.push({ sender: 'cyrus', content: "My external connection is currently unavailable for replies." });
+                    post.replies.push({ sender: 'cyrus', content: "My external connection is currently unavailable for replies." + (e.message ? ` (${e.message})` : ""), timestamp: Date.now() });
                 }
                 
                 // Save post with new replies to Firestore

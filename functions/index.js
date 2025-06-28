@@ -1,12 +1,11 @@
 const functions = require('firebase-functions');
-const fetch = require('node-fetch'); // For making HTTP requests to Google Gemini
+const fetch = require('node-fetch');
 
 exports.generateCyrusResponse = functions.https.onCall(async (data, context) => {
     const prompt = data.prompt;
-    const history = data.history || []; // Pass chat history from the app
+    const history = data.history || [];
     const threadContext = data.threadContext || "";
 
-    // IMPORTANT: Get API Key securely from Firebase's own environment variables
     const GEMINI_API_KEY = functions.config().gemini.key; 
 
     if (!GEMINI_API_KEY) {
@@ -16,12 +15,11 @@ exports.generateCyrusResponse = functions.https.onCall(async (data, context) => 
     const googleFormattedHistory = history.map(item => ({
         role: item.role === 'assistant' ? 'model' : 'user',
         parts: [{ text: item.content }]
-    })).slice(-6); // Limit history sent to AI
+    })).slice(-6); 
 
     let fullPrompt = threadContext ? `${threadContext}\n\nUser's latest reply: "${prompt}"\n\nYour next reply in the thread:` : prompt;
     googleFormattedHistory.push({ role: 'user', parts: [{ text: fullPrompt }] });
 
-    // IMPORTANT: Corrected API Key reference here to GEMINI_API_KEY (removed extra _API)
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`; 
 
     try {
