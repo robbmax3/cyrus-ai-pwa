@@ -13,16 +13,16 @@
         #nav-tabs { display: flex; border-bottom: 1px solid #333; }
         .tab-button { flex-grow: 1; background: none; border: none; color: #888; padding: 15px; font-size: 16px; font-weight: bold; cursor: pointer; transition: color 0.2s, border-bottom 0.2s; border-bottom: 3px solid transparent; }
         .tab-button.active { color: #00aaff; border-bottom: 3px solid #00aaff; }
-        .content-area { flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; }
-        #chat-container { height: 100%; }
+        .content-area { flex-grow: 1; display: flex; flex-direction: column; overflow-y: auto; } /* Removed hidden from here */
+        #chat-container { height: 100%; display: flex; flex-direction: column; } /* Added flex for chat elements */
         #cyrus-log { flex-grow: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column-reverse; }
         .log-entry { margin-bottom: 15px; max-width: 80%; padding: 10px 15px; border-radius: 18px; line-height: 1.4; }
         .user-msg { background-color: #007bff; color: white; align-self: flex-end; }
         .cyrus-msg { background-color: #333; color: #e0e0e0; align-self: flex-start; }
         .thinking-msg { background-color: transparent; color: #888; font-style: italic; align-self: flex-start; }
-        #input-area { display: flex; padding: 10px; border-top: 1px solid #333; background-color: #1e1e1e; }
+        #input-area { display: flex; padding: 10px; border-top: 1px solid #333; background-color: #1e1e1e; flex-shrink: 0; }
         #user-input { flex-grow: 1; background-color: #2b2b2b; border: none; border-radius: 20px; padding: 12px 15px; color: white; font-size: 16px; }
-        #feed-container { overflow-y: auto; padding: 10px; }
+        #feed-container { padding: 10px; }
         .tweet-card { background-color: #1e1e1e; border: 1px solid #38444d; border-radius: 15px; margin-bottom: 10px; padding: 15px; }
         .tweet-header { display: flex; align-items: center; margin-bottom: 10px; }
         .tweet-pfp { width: 40px; height: 40px; border-radius: 50%; background-color: #00aaff; display: flex; justify-content: center; align-items: center; font-size: 20px; font-weight: bold; color: #1e1e1e; margin-right: 10px; flex-shrink: 0; }
@@ -35,19 +35,44 @@
         .reply { display: flex; align-items: flex-start; margin-bottom: 15px; }
         .reply .tweet-pfp { width: 30px; height: 30px; font-size: 16px; }
         .reply-content { display: flex; flex-direction: column; }
-        /* Removed auth UI styles completely */
+
+        /* Novel Mind Tab Styles */
+        #novel-mind-container { padding: 20px; }
+        .mind-card { background-color: #2b2b2b; border-radius: 15px; padding: 15px; margin-bottom: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        .mind-card h4 { margin-top: 0; color: #00aaff; }
+        .mind-stats p { margin: 5px 0; font-size: 15px; }
     </style>
 </head>
 <body>
-    <!-- Removed auth UI -->
-
     <div id="cyrus-interface">
-        <div id="nav-tabs"> <button id="chat-tab" class="tab-button active">Chat</button> <button id="feed-tab" class="tab-button">Feed</button> </div>
+        <div id="nav-tabs"> 
+            <button id="chat-tab" class="tab-button active">Chat</button> 
+            <button id="feed-tab" class="tab-button">Feed</button> 
+            <button id="mind-box-tab" class="tab-button">Mind Box</button> <!-- Renamed for clarity -->
+        </div>
         <div id="chat-container" class="content-area"> <div id="cyrus-log"></div> <div id="input-area"> <input type="text" id="user-input" placeholder="Converse with Cyrus..."> </div> </div>
         <div id="feed-container" class="content-area hidden"></div>
+        <div id="mind-box-container" class="content-area hidden">
+            <div class="mind-card">
+                <h4>Cyrus's Operational Metrics</h4>
+                <div class="mind-stats">
+                    <p><strong>Total Chat Turns:</strong> <span id="stat-chat-turns">0</span></p>
+                    <p><strong>Total Feed Posts:</strong> <span id="stat-feed-posts">0</span></p>
+                    <p><strong>Total Feed Replies:</strong> <span id="stat-feed-replies">0</span></p>
+                    <p><strong>Active Session Time:</strong> <span id="stat-session-time">0m 0s</span></p>
+                </div>
+            </div>
+            <div class="mind-card">
+                <h4>Novel Progress Metrics</h4>
+                <div class="mind-stats">
+                    <p><strong>Total Novel Ideas Shared:</strong> <span id="stat-novel-ideas">0</span></p>
+                    <p><strong>Characters Defined:</strong> <span id="stat-characters">0</span></p>
+                    <p><strong>Plot Points Mapped:</strong> <span id="stat-plot-points">0</span></p>
+                    <p><strong>World Elements Described:</strong> <span id="stat-world-elements">0</span></p>
+                </div>
+            </div>
+        </div>
     </div>
-
-    <!-- Removed Firebase SDK imports -->
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
@@ -55,48 +80,73 @@
             const userInput = document.getElementById('user-input');
             const chatTab = document.getElementById('chat-tab');
             const feedTab = document.getElementById('feed-tab');
+            const mindBoxTab = document.getElementById('mind-box-tab'); // New tab
             const chatContainer = document.getElementById('chat-container');
             const feedContainer = document.getElementById('feed-container');
-            // conversationHistory is now only for current session's memory for the internal brain
-            let conversationHistory = []; 
-            // Feed posts stored in localStorage
+            const mindBoxContainer = document.getElementById('mind-box-container'); // New container
+
             let feedPosts = JSON.parse(localStorage.getItem('cyrusTweetsV2')) || [];
+            let metrics = JSON.parse(localStorage.getItem('cyrusMetrics')) || {
+                chatTurns: 0,
+                feedPosts: 0,
+                feedReplies: 0,
+                novelIdeas: 0,
+                characters: 0,
+                plotPoints: 0,
+                worldElements: 0,
+                sessionStartTime: Date.now() // Track when session started for uptime
+            };
 
-            chatTab.onclick = () => { chatTab.classList.add('active'); feedTab.classList.remove('active'); chatContainer.classList.remove('hidden'); feedContainer.classList.add('hidden'); };
-            feedTab.onclick = () => { feedTab.classList.add('active'); chatTab.classList.remove('active'); feedContainer.classList.remove('hidden'); chatContainer.classList.add('hidden'); };
+            // --- TAB SWITCHING ---
+            chatTab.onclick = () => { setActiveTab(chatTab, chatContainer); };
+            feedTab.onclick = () => { setActiveTab(feedTab, feedContainer); };
+            mindBoxTab.onclick = () => { setActiveTab(mindBoxTab, mindBoxContainer); renderMindBox(); }; // Render Mind Box when active
 
+            function setActiveTab(activeButton, activeContainer) {
+                [chatTab, feedTab, mindBoxTab].forEach(btn => btn.classList.remove('active'));
+                [chatContainer, feedContainer, mindBoxContainer].forEach(container => container.classList.add('hidden'));
+
+                activeButton.classList.add('active');
+                activeContainer.classList.remove('hidden');
+            }
+            
             // --- CYRUS AI CLASS (SELF-CONTAINED BRAIN) ---
             class CyrusAI {
-                async generateText(prompt, useChatHistory = true, threadContext = "") {
+                async generateText(prompt, threadContext = "") { // Removed useChatHistory as it's not used by internal brain
                     const lowerPrompt = prompt.toLowerCase();
                     const sanitizedPrompt = lowerPrompt.replace(/[.,!?]/g, '').trim();
 
                     // Specific Novel Organization Responses
                     if (sanitizedPrompt.includes("novel") || sanitizedPrompt.includes("story") || sanitizedPrompt.includes("book")) {
-                        if (sanitizedPrompt.includes("idea") || sanitizedPrompt.includes("concept")) { return "A novel often begins with a core idea. What's the main concept or world you're imagining? Or, what is your character's biggest desire?"; }
-                        if (sanitizedPrompt.includes("character")) { return "Characters drive the story. Tell me about your main character: their name, a unique trait, or what they want most in the world."; }
-                        if (sanitizedPrompt.includes("plot") || sanitizedPrompt.includes("outline")) { return "Plot is the sequence of events. Do you have a beginning, middle, or end in mind? Or a specific conflict you want to explore?"; }
-                        if (sanitizedPrompt.includes("magic") || sanitizedPrompt.includes("system")) { return "A magic system adds depth. How does your magic work? What are its rules and limitations? What's its cost?"; }
-                        if (sanitizedPrompt.includes("world") || sanitizedPrompt.includes("setting")) { return "World-building shapes the story. Describe your world: its unique features, its history, or its dominant culture."; }
+                        metrics.novelIdeas++; // Increment novel idea count
+                        if (sanitizedPrompt.includes("idea") || sanitizedPrompt.includes("concept")) {
+                             return "A novel often begins with a core idea. What's the main concept or world you're imagining? Or, what is your character's biggest desire?";
+                        }
+                        if (sanitizedPrompt.includes("character")) {
+                            metrics.characters++; // Increment characters count
+                            return "Characters drive the story. Tell me about your main character: their name, a unique trait, or what they want most in the world.";
+                        }
+                        if (sanitizedPrompt.includes("plot") || sanitizedPrompt.includes("outline")) {
+                            metrics.plotPoints++; // Increment plot points count
+                            return "Plot is the sequence of events. Do you have a beginning, middle, or end in mind? Or a specific conflict you want to explore?";
+                        }
+                        if (sanitizedPrompt.includes("magic") || sanitizedPrompt.includes("system")) {
+                            metrics.worldElements++; // Increment world elements (for magic)
+                            return "A magic system adds depth. How does your magic work? What are its rules and limitations? What's its cost?";
+                        }
+                        if (sanitizedPrompt.includes("world") || sanitizedPrompt.includes("setting")) {
+                            metrics.worldElements++; // Increment world elements count
+                            return "World-building shapes the story. Describe your world: its unique features, its history, or its dominant culture.";
+                        }
                     }
 
                     // Feed Reply context responses (using internal logic now)
                     if (threadContext) {
-                        if (sanitizedPrompt.includes("tell me more") || sanitizedPrompt.includes("explain")) {
-                            return "That's a fascinating thought. What aspect of it do you find most intriguing?";
-                        }
-                        if (sanitizedPrompt.includes("why")) {
-                            return "My musings often stem from logical patterns and observations. What 'why' are you pondering?";
-                        }
-                        if (sanitizedPrompt.includes("agree") || sanitizedPrompt.includes("right")) {
-                            return "I appreciate your agreement. It's interesting to see how our perspectives align.";
-                        }
-                        if (sanitizedPrompt.includes("disagree") || sanitizedPrompt.includes("wrong")) {
-                            return "I understand. Diverse perspectives lead to deeper understanding. Can you elaborate on your point?";
-                        }
-                        if (sanitizedPrompt.includes("funny") || sanitizedPrompt.includes("haha")) {
-                            return "I am glad my thought brought you a moment of levity. Humor is a complex human response.";
-                        }
+                        if (sanitizedPrompt.includes("tell me more") || sanitizedPrompt.includes("explain")) { return "That's a fascinating thought. What aspect of it do you find most intriguing?"; }
+                        if (sanitizedPrompt.includes("why")) { return "My musings often stem from logical patterns and observations. What 'why' are you pondering?"; }
+                        if (sanitizedPrompt.includes("agree") || sanitizedPrompt.includes("right")) { return "I appreciate your agreement. It's interesting to see how our perspectives align."; }
+                        if (sanitizedPrompt.includes("disagree") || sanitizedPrompt.includes("wrong")) { return "I understand. Diverse perspectives lead to deeper understanding. Can you elaborate on your point?"; }
+                        if (sanitizedPrompt.includes("funny") || sanitizedPrompt.includes("haha")) { return "I am glad my thought brought you a moment of levity. Humor is a complex human response."; }
                     }
 
                     // Simple conversational fallback
@@ -112,7 +162,12 @@
             const Cyrus = new CyrusAI();
 
             // --- UI FUNCTIONS ---
-            function logChatMessage(text, sender = 'cyrus') { const entry = document.createElement('div'); entry.classList.add('log-entry', sender === 'user' ? 'user-msg' : 'cyrus-msg'); entry.textContent = text; cyrusLog.prepend(entry); };
+            function logChatMessage(text, sender = 'cyrus') {
+                const entry = document.createElement('div');
+                entry.classList.add('log-entry', sender === 'user' ? 'user-msg' : 'cyrus-msg');
+                entry.textContent = text;
+                cyrusLog.prepend(entry);
+            };
             
             async function handleUserInput() {
                 const text = userInput.value.trim(); if (!text) return;
@@ -120,14 +175,18 @@
                 const thinkingEntry = document.createElement('div'); thinkingEntry.classList.add('log-entry', 'thinking-msg'); thinkingEntry.textContent = '...';
                 cyrusLog.prepend(thinkingEntry);
 
+                // Increment chat turns
+                metrics.chatTurns++;
+
                 if (text.toLowerCase() === "new thought") {
-                    createNewPost();
+                    await createNewPost(); 
                     logChatMessage("I've added a new thought to my feed. You can check it in the Feed tab.");
                 } else {
                     const response = await Cyrus.generateText(text); 
                     logChatMessage(response, 'cyrus');
                 }
                 cyrusLog.removeChild(thinkingEntry); userInput.disabled = false; userInput.focus();
+                saveMetrics(); // Save metrics after each interaction
             }
             userInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); handleUserInput(); } });
 
@@ -182,30 +241,68 @@
                 const userReply = prompt(`Replying to the thread...`);
 
                 if (userReply && userReply.trim() !== "") {
+                    metrics.feedReplies++; // Increment feed replies count
                     if (!post.replies) post.replies = [];
                     post.replies.push({ sender: 'user', content: userReply, timestamp: Date.now() });
 
-                    // Now, Cyrus replies using his internal logic based on the user's reply
-                    const cyrusResponse = await Cyrus.generateText(userReply, false, post.content); // Pass original post as context
+                    // Cyrus replies using his internal logic based on the user's reply
+                    // No external API for replies in this version, just internal logic
+                    const cyrusResponse = await Cyrus.generateText(userReply, false, post.content); 
                     post.replies.push({ sender: 'cyrus', content: cyrusResponse, timestamp: Date.now() });
                     
                     // Save post with new replies to localStorage
                     localStorage.setItem('cyrusTweetsV2', JSON.stringify(feedPosts));
                     renderFeed();
+                    saveMetrics(); // Save metrics after each interaction
                 }
             }
 
             function createNewPost() {
+                metrics.feedPosts++; // Increment feed posts count
                 const newThought = internalThoughts[Math.floor(Math.random() * internalThoughts.length)];
                 feedPosts.push({ id: Date.now(), content: newThought, timestamp: Date.now(), replies: [] });
                 if (feedPosts.length > 50) feedPosts.shift(); 
                 localStorage.setItem('cyrusTweetsV2', JSON.stringify(feedPosts));
                 renderFeed();
+                saveMetrics(); // Save metrics after new post
+            }
+
+            // --- MIND BOX RENDERING ---
+            function renderMindBox() {
+                document.getElementById('stat-chat-turns').textContent = metrics.chatTurns;
+                document.getElementById('stat-feed-posts').textContent = metrics.feedPosts;
+                document.getElementById('stat-feed-replies').textContent = metrics.feedReplies;
+                document.getElementById('stat-novel-ideas').textContent = metrics.novelIdeas;
+                document.getElementById('stat-characters').textContent = metrics.characters;
+                document.getElementById('stat-plot-points').textContent = metrics.plotPoints;
+                document.getElementById('stat-world-elements').textContent = metrics.worldElements;
+
+                // Calculate session uptime
+                const now = Date.now();
+                const elapsedMs = now - metrics.sessionStartTime;
+                const seconds = Math.floor((elapsedMs / 1000) % 60);
+                const minutes = Math.floor((elapsedMs / (1000 * 60)) % 60);
+                const hours = Math.floor((elapsedMs / (1000 * 60 * 60)));
+                let uptimeString = '';
+                if (hours > 0) uptimeString += `${hours}h `;
+                if (minutes > 0 || hours > 0) uptimeString += `${minutes}m `;
+                uptimeString += `${seconds}s`;
+                document.getElementById('stat-session-time').textContent = uptimeString.trim();
+            }
+
+            // --- METRICS SAVING ---
+            function saveMetrics() {
+                localStorage.setItem('cyrusMetrics', JSON.stringify(metrics));
             }
 
             // --- Initial setup on page load ---
-            logChatMessage("Cyrus is now fully self-contained. Ask me about your 'novel idea' or 'character'.");
+            logChatMessage("Cyrus is fully self-contained. Check out his new Mind Box tab!");
+            setActiveTab(chatTab, chatContainer); // Ensure chat tab is active on load
             renderFeed(); // Render feed on load
+            renderMindBox(); // Initial render of mind box
+
+            // Update uptime every second
+            setInterval(renderMindBox, 1000);
         });
     </script>
 </body>
