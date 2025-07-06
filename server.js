@@ -1,18 +1,19 @@
 const express = require('express');
+const path = require('path');
 const app = express();
+const port = process.env.PORT || 3000; // Use port 3000 by default, or an environment variable
 
-// These lines serve your main files.
+// Serve static files from the current directory (where server.js resides)
+// This makes index.html, manifest.json, service-worker.js, and the icons folder accessible
+app.use(express.static(__dirname));
+
+// Send index.html for the root path specifically
 app.get('/', (req, res) => {
-  res.sendFile(__dirname + '/index.html');
-});
-app.get('/manifest.json', (req, res) => {
-  res.sendFile(__dirname + '/manifest.json');
-});
-app.get('/service-worker.js', (req, res) => {
-  res.sendFile(__dirname + '/service-worker.js');
+  res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// Starts the server
-const listener = app.listen(process.env.PORT, () => {
-  console.log('Your app is listening on port ' + listener.address().port);
+// Start the server
+app.listen(port, () => {
+  console.log(`Cyrus AI web server running on http://localhost:${port}`);
+  console.log('Access your AI by opening this URL in your browser.');
 });

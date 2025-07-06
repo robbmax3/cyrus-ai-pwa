@@ -1,18 +1,12 @@
 {
-  "name": "cyrus-ai-pwa",
+  "name": "cyrus-ai-web",
   "version": "1.0.0",
-  "description": "An AI Chatbot PWA with Firebase Backend",
+  "description": "Cyrus AI web application with integrated AI.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
-    "express": "^4.17.1",
-    "firebase-admin": "^11.5.0",
-    "firebase-functions": "^4.2.1",
-    "node-fetch": "^2.6.1"
-  },
-  "engines": {
-    "node": "16.x"
+    "express": "^4.19.2"
   }
 }
