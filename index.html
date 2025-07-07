@@ -42,14 +42,19 @@
          }
 
         #ai-circle {
+            /* New custom size */
+            width: 200px;
+            height: 112px;
+            font-size: 24px; /* Adjust font size proportionally */
+            border-radius: 10px; /* Optional: make it slightly rounded instead of circle */
+            background-color: #000; /* Keep it black */
+            box-shadow: 0 6px 20px rgba(0, 170, 255, 0.6);
             left: 50px; 
             top: 50px; 
-            background-color: #000; /* Changed to black */
-             box-shadow: 0 6px 20px rgba(0, 170, 255, 0.6);
         }
-         #ai-circle:hover {
-             box-shadow: 0 8px 25px rgba(0, 170, 255, 0.8);
-         }
+        #ai-circle:hover {
+            box-shadow: 0 8px 25px rgba(0, 170, 255, 0.8);
+        }
 
         /* --- Video Circle --- */
         #video-circle {
@@ -147,8 +152,7 @@
             overflow: hidden; 
             cursor: grab; 
             touch-action: none; 
-             /* Allows positioning children */
-            position: fixed; /* Ensure position is fixed for dragging */
+            /* Ensures position is fixed for dragging */
         }
          #video-box.dragging {
              cursor: grabbing;
@@ -410,11 +414,7 @@
         }
 
         /* Novel Mind Tab Styles */
-        #novel-mind-container { padding: 20px; } /* Note: HTML uses #mind-box-container */
-        #mind-box-container { 
-            padding: 20px; 
-            scrollbar-width: none; 
-        }
+        #mind-box-container { padding: 20px; }
         #mind-box-container::-webkit-scrollbar {
             display: none; 
         }
@@ -854,7 +854,7 @@
             // --- CYRUS AI CLASS (SELF-CONTAINED BRAIN) ---
             class CyrusAI {
                 constructor() {
-                    this.stopWords = new Set(['i', 'me', 'my', 'a', 'an', 'the', 'is', 'am', 'are', 'was', 'to', 'for', 'of', 'in', 'it', 'you', 'and', 'but', 'so', 'what', 'how', 'why', 'can', 'do', 'like', 'this', 'that', 'or', 'your', 'about', 'just', 'tell', 'me', 'more', 'what\'s']); 
+                    this.stopWords = new Set(['i', 'me', 'my', 'a', 'an', 'the', 'is', 'am', 'are', 'was', 'to', 'for', 'of', 'in', 'it', 'you', 'and', 'but', 'so', 'what', 'how', 'why', 'can', 'do', 'like', 'this', 'that', 'or', 'your', 'about', 'just', 'tell', 'me', 'more', "what's"]); 
                     this.speech = window.speechSynthesis;
                     this.voice = null;
                     this.initVoice();
