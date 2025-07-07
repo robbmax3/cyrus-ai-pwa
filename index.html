@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
     <title>Cyrus AI</title>
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#1e1e1e">
+    <link rel="manifest" href="manifest.json" />
+    <meta name="theme-color" content="#1e1e1e" />
     <style>
         body { 
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
@@ -15,94 +15,76 @@
             overflow: hidden; /* Prevent body scrolling when elements are dragged */
         }
 
-        /* --- Base styles for all floating elements --- */
-        .floating-element {
+        /* --- Floating Buttons (AI Circle, Video Circle) --- */
+        .floating-circle {
              position: fixed;
+            width: 70px;
+            height: 70px;
+            border: 2px solid rgba(255, 255, 255, 0.7);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 32px;
+            font-weight: bold;
+            color: #1e1e1e; 
             cursor: grab; 
-            z-index: 1000; /* High z-index by default */
+            z-index: 1000; 
             user-select: none; 
              transition: box-shadow 0.2s ease-in-out;
              touch-action: none; /* Prevent default touch actions like scrolling/zooming */
-             box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5); /* Default shadow */
         }
-         .floating-element:hover {
-             box-shadow: 0 8px 25px rgba(0, 0, 0, 0.8); /* Default hover shadow */
+         .floating-circle:hover {
+             box-shadow: 0 8px 25px rgba(0, 170, 255, 0.8);
          }
-         .floating-element.dragging {
+         .floating-circle.dragging {
              cursor: grabbing;
          }
 
-         /* AI Rectangle (formerly AI Circle) */
-        #ai-circle { /* Keep ID for compatibility with existing JS */
+        #ai-circle {
             left: 50px; 
             top: 50px; 
-            width: 200px; /* Rectangle width */
-            height: 60px; /* Rectangle height */
-            border: 2px solid rgba(255, 255, 255, 0.7);
-            border-radius: 10px; /* Slightly rounded corners */
-             overflow: hidden; /* Clip content to border-radius */
-            background-color: #00aaff; /* Fallback background */
+            background-color: #000; /* Changed to black */
              box-shadow: 0 6px 20px rgba(0, 170, 255, 0.6);
         }
          #ai-circle:hover {
              box-shadow: 0 8px 25px rgba(0, 170, 255, 0.8);
          }
 
-         /* Style for the video INSIDE the AI rectangle */
-         #ai-avatar-video {
-             display: block; 
-             width: 100%; 
-             height: 100%; 
-             object-fit: cover; /* Cover the area without distortion, cropping if needed */
-             pointer-events: none; /* Allow clicks to pass through to the parent div for dragging/toggling */
-         }
-
-
-         /* Video Circle */
+        /* --- Video Circle --- */
         #video-circle {
-            left: 280px; /* Default different position to avoid overlap */
+            left: 150px; /* Default different position */
             top: 50px; /* Default starting position */
-             width: 70px; /* Circle dimensions */
-             height: 70px;
-             border-radius: 50%; /* Make it a circle */
-             display: flex;
-             justify-content: center;
-             align-items: center;
-             overflow: hidden; /* Needed for border-radius */
-             background-color: #ff6600; 
-             box-shadow: 0 6px 20px rgba(255, 102, 0, 0.6);
-             font-size: 24px; 
-             color: white;
-        }
-         #video-circle:hover {
-             box-shadow: 0 8px 25px rgba(255, 102, 0, 0.8);
-         }
-
-        /* --- PiP Icon on AI Rectangle --- */
-        #pip-icon {
-            position: absolute; /* Position relative to parent #ai-circle */
-            bottom: -8px; /* Adjust position as needed */
-            right: -8px; /* Adjust position as needed */
-            width: 28px; /* Make it a bit larger */
-            height: 28px; /* Make it a bit larger */
-            background-color: rgba(0, 0, 0, 0.6); 
+            background-color: #ff6600; /* Orange color */
+            box-shadow: 0 6px 20px rgba(255, 102, 0, 0.6);
+            font-size: 24px; /* Smaller text */
             color: white;
+        }
+        #video-circle:hover {
+            box-shadow: 0 8px 25px rgba(255, 102, 0, 0.8);
+        }
+
+        /* --- PiP Icon on AI Circle --- */
+        #pip-icon {
+            position: absolute;
+            bottom: -8px;
+            right: -8px;
+            width: 24px;
+            height: 24px;
+            background-color: rgba(255, 255, 255, 0.2);
             border-radius: 50%;
             display: flex;
             justify-content: center;
             align-items: center;
-            font-size: 18px; /* Adjust font size for icon */
+            font-size: 14px;
             cursor: pointer;
             border: 1px solid rgba(255, 255, 255, 0.5);
             transition: background-color 0.2s ease-in-out;
-            z-index: 1001; /* Higher than AI circle */
-             user-select: none;
-             display: none; /* Hidden by default, shown by JS if supported */
+            z-index: 1001; /* Higher than the circle */
         }
         #pip-icon:hover {
-            background-color: rgba(0,0,0,0.8);
+            background-color: rgba(255,255,255,0.4);
         }
-
 
         /* --- Sound Wave Visualization --- */
         #sound-wave {
@@ -130,7 +112,6 @@
             transition: height 0.1s ease-out; 
         }
 
-
         /* --- Cyrus Interface (The Chat Window) --- */
         #cyrus-interface { 
             display: none; 
@@ -152,7 +133,6 @@
             cursor: grabbing;
         }
 
-
         /* --- Video Box --- */
         #video-box {
             display: none; 
@@ -167,7 +147,8 @@
             overflow: hidden; 
             cursor: grab; 
             touch-action: none; 
-            position: fixed; 
+             /* Allows positioning children */
+            position: fixed; /* Ensure position is fixed for dragging */
         }
          #video-box.dragging {
              cursor: grabbing;
@@ -209,34 +190,34 @@
             pointer-events: none; 
         }
 
-         /* --- PiP Button inside Video Box --- */
+        /* --- PiP Button --- */
         #video-pip-button {
             position: absolute;
-            top: 10px; 
-            right: 10px; 
+            top: 10px; /* 10px from top */
+            right: 10px; /* 10px from right */
             z-index: 10; 
             background-color: rgba(0, 0, 0, 0.6); 
             color: white;
-            font-size: 18px; 
-            padding: 8px 12px; 
-            border-radius: 8px; 
+            font-size: 18px; /* Smaller icon */
+            padding: 8px 12px; /* Padding for button */
+            border-radius: 8px; /* Slightly rounded corners */
             cursor: pointer;
             border: 1px solid rgba(255, 255, 255, 0.5);
             transition: background-color 0.2s ease-in-out;
              user-select: none;
-             display: none; 
+             display: none; /* Hidden by default, shown by JS if supported */
         }
          #video-pip-button:hover {
              background-color: rgba(0, 0, 0, 0.8);
          }
+         /* Style for the PiP icon - a small square with an arrow */
          #video-pip-button::before {
-             content: '❐'; 
+             content: '❐'; /* Unicode for a square/window shape */
              margin-right: 4px;
              font-size: 1.2em;
              line-height: 1;
              vertical-align: middle;
          }
-
 
         .hidden { display: none !important; }
 
@@ -455,24 +436,12 @@
     </style>
 </head>
 <body>
-    <!-- Floating Elements -->
-    <!-- AI is now a rectangle with a video background -->
-    <div id="ai-circle" class="floating-element"> <!-- Used floating-element class -->
-         <video id="ai-avatar-video" autoplay loop muted playsinline>
-             <!-- IMPORTANT: Replace these with YOUR video sources -->
-             <!-- This video should display "Cyrus AI" perhaps with animation -->
-             <!-- Placeholder video for now - REPLACE THIS SRC -->
-             <source id="ai-video-source-mp4" src="https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4" type="video/mp4">
-             <!-- Consider adding other formats like webm -->
-             <source id="ai-video-source-webm" src="https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.webm" type="video/webm">
-             Your browser does not support the video tag.
-         </video>
-        <div id="pip-icon">❐</div> <!-- PiP icon on the AI rectangle -->
+    <!-- Floating Buttons -->
+    <div id="ai-circle" class="floating-circle">
+        AI
+        <div id="pip-icon" class="pip-icon">🎥</div>
     </div>
-    <!-- Video Circle (remains a circle) -->
-    <div id="video-circle" class="floating-element"> <!-- Used floating-element class -->
-        Vid
-    </div>
+    <div id="video-circle" class="floating-circle">Vid</div>
 
     <!-- Sound Wave Element -->
     <div id="sound-wave">
@@ -486,30 +455,29 @@
         <div class="sound-wave-bar"></div>
     </div>
 
-     <!-- Video Box (for the main video) -->
-     <div id="video-box" class="floating-element"> <!-- Used floating-element class -->
+     <!-- Video Box -->
+     <div id="video-box">
          <video id="main-video" loop playsinline controlslist="nodownload nofullscreen noremoteplayback">
-             <!-- Replace with your main video source -->
-             <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4">
+             <!-- Replace with your video source -->
+             <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4" />
              <!-- Add other formats if needed -->
              Your browser does not support the video tag.
          </video>
          <div id="video-play-pause-button">▶</div>
-         <div id="video-pip-button">PiP</div> 
+         <div id="video-pip-button">PiP</div> <!-- New PiP button -->
      </div>
 
-
-    <div id="cyrus-interface" class="floating-element"> <!-- Used floating-element class -->
-        <div id="nav-tabs"> 
-            <button id="chat-tab" class="tab-button active">Chat</button> 
-            <button id="feed-tab" class="tab-button">Feed</button> 
+    <div id="cyrus-interface">
+        <div id="nav-tabs">
+            <button id="chat-tab" class="tab-button active">Chat</button>
+            <button id="feed-tab" class="tab-button">Feed</button>
             <button id="mind-box-tab" class="tab-button">Mind Box</button>
         </div>
-        <div id="chat-container" class="content-area"> 
-            <div id="cyrus-log"></div> 
-            <div id="input-area"> 
-                <input type="text" id="user-input" placeholder="Converse with Cyrus..."> 
-            </div> 
+        <div id="chat-container" class="content-area">
+            <div id="cyrus-log"></div>
+            <div id="input-area">
+                <input type="text" id="user-input" placeholder="Converse with Cyrus..." />
+            </div>
         </div>
         <div id="feed-container" class="content-area hidden"></div>
         <div id="mind-box-container" class="content-area hidden">
@@ -536,11 +504,7 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const aiCircle = document.getElementById('ai-circle'); // This is now the AI Rectangle
-             const aiAvatarVideo = document.getElementById('ai-avatar-video'); // Reference to the AI avatar video
-             const aiVideoSourceMp4 = document.getElementById('ai-video-source-mp4'); // Reference to AI video sources
-             const aiVideoSourceWebm = document.getElementById('ai-video-source-webm'); // Reference
-
+            const aiCircle = document.getElementById('ai-circle');
             const videoCircle = document.getElementById('video-circle'); 
             const soundWave = document.getElementById('sound-wave');
             const soundBars = soundWave.querySelectorAll('.sound-wave-bar');
@@ -549,7 +513,7 @@
             const mainVideo = document.getElementById('main-video'); 
             const videoPlayPauseButton = document.getElementById('video-play-pause-button'); 
             const videoPipButton = document.getElementById('video-pip-button');
-            const pipIcon = document.getElementById('pip-icon'); 
+            const pipIcon = document.getElementById('pip-icon'); // New PiP icon
 
             const cyrusLog = document.getElementById('cyrus-log');
             const userInput = document.getElementById('user-input');
@@ -559,17 +523,6 @@
             const chatContainer = document.getElementById('chat-container');
             const feedContainer = document.getElementById('feed-container');
             const mindBoxContainer = document.getElementById('mind-box-container');
-
-             // Define video sources for different AI states (using placeholders - REPLACE THESE!)
-             const aiVideoSources = {
-                 idle: { mp4: 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4', webm: 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.webm' }, 
-                 listening: { mp4: 'https://www.w3schools.com/html/mov_bbb.mp4', webm: 'https://www.w3schools.com/html/mov_bbb.mp4' }, 
-                 thinking: { mp4: 'https://www.w3schools.com/html/mov_bbb.mp4', webm: 'https://www.w3schools.com/html/mov_bbb.mp4' }, 
-                 speaking: { mp4: 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4', webm: 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.webm' }, 
-             };
-
-             let currentAIState = 'idle'; // Keep track of AI state
-             let aiStateTimeout = null; // For transitioning back to idle
 
             let feedPosts = JSON.parse(localStorage.getItem('cyrusTweetsV2')) || [];
             let metrics = JSON.parse(localStorage.getItem('cyrusMetrics')) || {
@@ -587,61 +540,6 @@
             let activityTimeoutId;
             const ACTIVITY_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 
-            // --- AI AVATAR VIDEO STATE MANAGEMENT ---
-            function setAIState(newState) {
-                 // Only change if the state is actually different
-                 if (currentAIState === newState) return; 
-
-                 console.log("AI State:", currentAIState, "->", newState);
-
-                 const sources = aiVideoSources[newState];
-                 if (!sources) {
-                     console.warn("No video sources defined for state:", newState);
-                     // Optionally handle this state visually, e.g., show a fallback image or text
-                     aiVideoSourceMp4.src = ''; 
-                     if(aiVideoSourceWebm) aiVideoSourceWebm.src = '';
-                 } else {
-                     // Only change source if it's different to avoid flickering
-                     // Check if both MP4 and WebM sources are provided and differ
-                     const mp4Changed = aiVideoSourceMp4.src !== (sources.mp4 || '');
-                     const webmChanged = aiVideoSourceWebm && aiVideoSourceWebm.src !== (sources.webm || '');
-
-                     if (mp4Changed || webmChanged) {
-                         aiVideoSourceMp4.src = sources.mp4 || '';
-                         if(aiVideoSourceWebm) aiVideoSourceWebm.src = sources.webm || '';
-                         aiAvatarVideo.load(); // Load the new source
-                         console.log(`AI video source changed to ${newState}`);
-                     } else {
-                         console.log(`AI video source for ${newState} is already loaded.`);
-                     }
-                 }
-                 
-                 currentAIState = newState;
-
-                 // Play the video if it's not already playing
-                 if (aiAvatarVideo.paused || aiAvatarVideo.ended) {
-                     aiAvatarVideo.play().catch(error => {
-                         console.log(`AI video autoplay prevented for state ${newState}:`, error);
-                         // This might happen if the browser requires user interaction to play muted videos
-                         // You could fallback to showing the AI text or an image here if autoplay fails
-                     });
-                 }
-
-                 // Clear any previous timeout
-                 if (aiStateTimeout) clearTimeout(aiStateTimeout);
-
-                 // Set a timeout to go back to idle after a short period in certain states
-                 if (newState === 'listening' || newState === 'thinking') {
-                     aiStateTimeout = setTimeout(() => {
-                         // Only revert to idle if still in this state and not speaking
-                         if (currentAIState === newState && !Cyrus.speech.speaking) {
-                            setAIState('idle');
-                         }
-                     }, 3000); // Revert after 3 seconds
-                 }
-            }
-
-
             // --- FLOATING ELEMENT POSITIONING/DRAGGING ---
             let _isDragging = false;
             let _draggedElement = null; 
@@ -653,21 +551,17 @@
             const SOUND_WAVE_OFFSET_X = 10; 
 
             function saveElementPosition(element, x, y) {
-                if (element && element.id) {
-                   localStorage.setItem(`${element.id}X`, x);
-                   localStorage.setItem(`${element.id}Y`, y);
-                }
+                localStorage.setItem(`${element.id}X`, x);
+                localStorage.setItem(`${element.id}Y`, y);
             }
 
             function loadElementPosition(element) {
-                if (element && element.id) {
-                   const storedX = localStorage.getItem(`${element.id}X`);
-                   const storedY = localStorage.getItem(`${element.id}Y`);
-                   if (storedX !== null && storedY !== null && !isNaN(parseFloat(storedX)) && !isNaN(parseFloat(storedY))) { // Check if stored values are valid numbers
-                       element.style.left = `${storedX}px`;
-                       element.style.top = `${storedY}px`;
-                       return true; 
-                   }
+                const storedX = localStorage.getItem(`${element.id}X`);
+                const storedY = localStorage.getItem(`${element.id}Y`);
+                if (storedX !== null && storedY !== null) {
+                    element.style.left = `${storedX}px`;
+                    element.style.top = `${storedY}px`;
+                    return true; 
                 }
                 return false; 
             }
@@ -681,7 +575,6 @@
                 const aiRect = aiCircle.getBoundingClientRect();
                 const waveHeight = soundWave.offsetHeight;
 
-                // Position wave to the right of the AI rectangle's right edge, centered vertically
                 const waveLeft = aiRect.right + SOUND_WAVE_OFFSET_X;
                 const waveTop = aiRect.top + aiRect.height / 2 - waveHeight / 2;
 
@@ -706,20 +599,20 @@
 
             function startDrag(e, element) {
                  // Prevent dragging if the touch/mouse originated on specific interactive elements
+                 // Check for closest parent that IS the element being dragged before preventing
                  if (element === aiCircle && 
-                     (e.target.closest('#sound-wave') || e.target === pipIcon || e.target === aiAvatarVideo) && // Added aiAvatarVideo check
+                     (e.target.closest('#sound-wave') || e.target === pipIcon) && 
                      !e.target.closest('#ai-circle')) {
-                     console.log("Drag prevented on AI circle due to target:", e.target.id || e.target.tagName);
                      return;
                  }
                  if (element === cyrusInterface && e.target.closest('#nav-tabs, #input-area') && !e.target.closest('#cyrus-interface')) {
-                     console.log("Drag prevented on Interface due to target:", e.target.id || e.target.tagName);
                      return; 
                  }
+                  // Check if the target is the play/pause button OR the pip button
                  if (element === videoBox && (e.target.closest('#video-play-pause-button') || e.target.closest('#video-pip-button')) && !e.target.closest('#video-box')) {
-                      console.log("Drag prevented on Video Box due to target:", e.target.id || e.target.tagName);
                      return; 
                  }
+
 
                 _isDragging = true;
                 _draggedElement = element;
@@ -734,32 +627,23 @@
                 _initialMouseX = clientX;
                 _initialMouseY = clientY;
 
-                 // Capture offsets based on current visual positions when drag starts
-                 const aiRectCurrent = getElementCoords(aiCircle);
-                 // If the linked element is hidden, calculate offset based on its *default* position (if any is set by CSS or previous JS)
-                 const interfaceLeft = parseFloat(cyrusInterface.style.left) || 0;
-                 const interfaceTop = parseFloat(cyrusInterface.style.top) || 0;
-                 const videoCircleRectCurrent = getElementCoords(videoCircle);
-                 const videoBoxLeft = parseFloat(videoBox.style.left) || 0;
-                 const videoBoxTop = parseFloat(videoBox.style.top) || 0;
+                // Calculate initial offsets for linked elements
+                const aiCoords = getElementCoords(aiCircle);
+                const interfaceRect = getElementCoords(cyrusInterface);
+                const videoCircleCoords = getElementCoords(videoCircle);
+                const videoBoxCoords = getElementCoords(videoBox);
 
+                if (element === aiCircle || element === cyrusInterface) {
+                     _interfaceOffsetX = interfaceRect.x - aiCoords.x;
+                     _interfaceOffsetY = interfaceRect.y - aiCoords.y;
+                }
+                 if (element === videoCircle || element === videoBox) {
+                     _videoBoxOffsetX = videoBoxCoords.x - videoCircleCoords.x;
+                     _videoBoxOffsetY = videoBoxCoords.y - videoCircleCoords.y;
+                 }
 
-                 _interfaceOffsetX = interfaceLeft - aiRectCurrent.x;
-                 _interfaceOffsetY = interfaceTop - aiRectCurrent.y;
-
-                 _videoBoxOffsetX = videoBoxLeft - videoCircleRectCurrent.x;
-                 _videoBoxOffsetY = videoBoxTop - videoCircleRectCurrent.y;
-
-
-                console.log(`Starting drag on ${element.id}. Initial mouse: ${_initialMouseX}, ${_initialMouseY}. Initial element: ${_initialElementX}, ${_initialElementY}`);
                 document.body.style.userSelect = 'none';
                 document.body.style.cursor = 'grabbing';
-                 // Attach move and end listeners to the document to ensure they work even if the cursor leaves the element
-                document.addEventListener('mousemove', doDrag);
-                document.addEventListener('touchmove', doDrag, { passive: false }); 
-                document.addEventListener('mouseup', stopDrag);
-                document.addEventListener('touchend', stopDrag);
-                document.addEventListener('touchcancel', stopDrag); 
             }
 
             function doDrag(e) {
@@ -780,21 +664,16 @@
 
                 saveElementPosition(_draggedElement, newX, newY); 
 
-                // Move linked elements (only if they are visible)
+                // Move linked elements
                 if (_draggedElement === aiCircle) {
-                    if (cyrusInterface.style.display === 'flex') {
-                         positionElementLinked(cyrusInterface, aiCircle, _interfaceOffsetX, _interfaceOffsetY);
-                    }
+                    positionElementLinked(cyrusInterface, aiCircle, _interfaceOffsetX, _interfaceOffsetY);
                     positionSoundWave(); 
                 } else if (_draggedElement === cyrusInterface) {
                      positionElementLinked(aiCircle, cyrusInterface, -_interfaceOffsetX, -_interfaceOffsetY);
                      positionSoundWave();
                 } else if (_draggedElement === videoCircle) {
-                    // Only move video box if visible AND not currently in PiP
-                    if (videoBox.style.display !== 'none' && !document.pictureInPictureElement) { 
-                         positionElementLinked(videoBox, videoCircle, _videoBoxOffsetX, _videoBoxOffsetY);
-                    }
-                } else if (_draggedElement === videoBox && !document.pictureInPictureElement) { // Only drag box if not in PiP
+                     positionElementLinked(videoBox, videoCircle, _videoBoxOffsetX, _videoBoxOffsetY);
+                } else if (_draggedElement === videoBox) {
                      positionElementLinked(videoCircle, videoBox, -_videoBoxOffsetX, -_videoBoxOffsetY);
                  }
 
@@ -803,42 +682,36 @@
 
             function stopDrag() {
                 if (_isDragging && _draggedElement) {
-                    console.log(`Stopping drag on ${_draggedElement.id}`);
                     _isDragging = false;
                     _draggedElement.classList.remove('dragging');
                     _draggedElement = null;
                     document.body.style.userSelect = '';
                     document.body.style.cursor = '';
-                     // Remove the temporary listeners added in startDrag
-                    document.removeEventListener('mousemove', doDrag);
-                    document.removeEventListener('touchmove', doDrag, { passive: false });
-                    document.removeEventListener('mouseup', stopDrag);
-                    document.removeEventListener('touchend', stopDrag);
-                    document.removeEventListener('touchcancel', stopDrag);
                 }
             }
 
-            // Event listeners for initiating drag
+            // Event listeners for dragging
             aiCircle.addEventListener('mousedown', (e) => startDrag(e, aiCircle));
             aiCircle.addEventListener('touchstart', (e) => startDrag(e, aiCircle));
             cyrusInterface.addEventListener('mousedown', (e) => startDrag(e, cyrusInterface));
             cyrusInterface.addEventListener('touchstart', (e) => startDrag(e, cyrusInterface));
-            videoCircle.addEventListener('mousedown', (e) => startDrag(e, videoCircle)); 
-            videoCircle.addEventListener('touchstart', (e) => startDrag(e, videoCircle)); 
-            videoBox.addEventListener('mousedown', (e) => startDrag(e, videoBox)); 
-            videoBox.addEventListener('touchstart', (e) => startDrag(e, videoBox)); 
+             videoCircle.addEventListener('mousedown', (e) => startDrag(e, videoCircle)); 
+             videoCircle.addEventListener('touchstart', (e) => startDrag(e, videoCircle)); 
+             videoBox.addEventListener('mousedown', (e) => startDrag(e, videoBox)); 
+             videoBox.addEventListener('touchstart', (e) => startDrag(e, videoBox)); 
 
-             // Note: The actual move and end listeners are added/removed dynamically in startDrag/stopDrag
+
+            document.addEventListener('mousemove', doDrag);
+            document.addEventListener('touchmove', doDrag, { passive: false }); 
+            document.addEventListener('mouseup', stopDrag);
+            document.addEventListener('touchend', stopDrag);
+            document.addEventListener('touchcancel', stopDrag); 
 
             // --- AI CIRCLE CLICK / INTERFACE TOGGLE ---
             aiCircle.addEventListener('click', (e) => {
-                 // Prevent triggering if the click was on the pip icon or part of a drag
-                 if (e.target === pipIcon || _isDragging) {
-                     console.log("AI circle click prevented by target or drag state.");
-                     return;
-                 } 
-
-                 console.log("AI circle clicked, toggling interface.");
+                 // Prevent triggering if the click was on the pip icon
+                 if (e.target === pipIcon) return;
+                 if (_isDragging) return; 
 
                 if (cyrusInterface.style.display === 'flex') {
                     cyrusInterface.style.display = 'none';
@@ -879,10 +752,8 @@
                     positionSoundWave(); 
 
 
-                     // Update offset based on final position
-                    _interfaceOffsetX = parseFloat(cyrusInterface.style.left) - aiRect.left;
-                    _interfaceOffsetY = parseFloat(cyrusInterface.style.top) - aiRect.top;
-
+                    _interfaceOffsetX = desiredInterfaceLeft - aiRect.left;
+                    _interfaceOffsetY = finalTop - aiRect.top;
 
                     if (!hasWelcomed) {
                         const initialWelcomeText = Cyrus._makeChildLike(Cyrus._chooseResponse([
@@ -908,22 +779,17 @@
 
              // --- VIDEO CIRCLE CLICK / VIDEO BOX TOGGLE ---
              videoCircle.addEventListener('click', (e) => {
-                 if (_isDragging) {
-                     console.log("Video circle click prevented by drag state.");
-                     return;
-                 }
-
-                 console.log("Video circle clicked, toggling video box.");
+                 if (_isDragging) return;
 
                  if (videoBox.style.display === 'block') { 
+                     // Hide video box
                      videoBox.style.display = 'none';
                      mainVideo.pause(); // Pause video when hidden
-                      // If it was in PiP, exiting PiP would already pause it in the original element
-                      if (document.pictureInPictureElement === mainVideo) { // Ensure it's THIS video in PiP
-                          console.log("Video box hidden while in PiP, exiting PiP.");
+                      if (document.pictureInPictureElement) {
                         document.exitPictureInPicture(); // Exit PiP if active
                       }
                  } else {
+                     // Show video box
                      videoBox.style.display = 'block';
 
                      // Position video box relative to video circle (e.g., below and centered)
@@ -948,16 +814,14 @@
                      saveElementPosition(videoBox, desiredVideoBoxLeft, desiredVideoBoxTop);
                      saveElementPosition(videoCircle, videoCircleRect.left, videoCircleRect.top);
 
-                     // Update offset based on final position
-                     _videoBoxOffsetX = parseFloat(videoBox.style.left) - videoCircleRect.left;
-                     _videoBoxOffsetY = parseFloat(videoBox.style.top) - videoCircleRect.top;
-
+                     // Calculate and store the offset for linked dragging
+                     _videoBoxOffsetX = desiredVideoBoxLeft - videoCircleRect.left;
+                     _videoBoxOffsetY = desiredVideoBoxTop - videoCircleRect.top;
 
                      updatePlayPauseButtonState();
 
-                      // Optional: Auto-play the main video when the box is shown (be mindful of browser policies)
-                     mainVideo.play().catch(error => console.log("Main video autoplay on show prevented:", error));
-
+                     // Optional: Auto-play when shown (be mindful of browser policies)
+                     // mainVideo.play().catch(error => console.log("Autoplay prevented:", error));
 
                      resetActivityTimeout(); 
                  }
@@ -968,7 +832,6 @@
             function resetActivityTimeout() {
                 clearTimeout(activityTimeoutId);
                 activityTimeoutId = setTimeout(() => {
-                    console.log("Inactivity timeout reached, hiding chat interface.");
                     cyrusInterface.style.display = 'none';
                     Cyrus.speech.cancel(); 
                     stopWaveAnimation(); 
@@ -976,7 +839,6 @@
                 }, ACTIVITY_TIMEOUT_MS);
             }
 
-            // Listen for various activities to reset the timeout
             userInput.addEventListener('input', resetActivityTimeout); 
             userInput.addEventListener('keydown', resetActivityTimeout); 
             chatTab.addEventListener('click', resetActivityTimeout);
@@ -987,8 +849,6 @@
             document.body.addEventListener('touchstart', resetActivityTimeout); 
              mainVideo.addEventListener('play', resetActivityTimeout); 
              mainVideo.addEventListener('pause', resetActivityTimeout); 
-             aiAvatarVideo.addEventListener('play', resetActivityTimeout); // AI Video activity
-             aiAvatarVideo.addEventListener('pause', resetActivityTimeout); // AI Video activity
 
 
             // --- CYRUS AI CLASS (SELF-CONTAINED BRAIN) ---
@@ -998,22 +858,9 @@
                     this.speech = window.speechSynthesis;
                     this.voice = null;
                     this.initVoice();
-                    // State changes are handled manually now, not just by onstart/end
-                    this.speech.onstart = () => { 
-                         console.log("SpeechSynthesis: onstart");
-                         startWaveAnimation(); 
-                         setAIState('speaking'); // Set AI state to speaking
-                    }; 
-                    this.speech.onend = () => { 
-                         console.log("SpeechSynthesis: onend");
-                         stopWaveAnimation(); 
-                         setAIState('idle'); // Set AI state back to idle when speech ends
-                    }; 
-                    this.speech.onerror = (event) => { 
-                         console.error("SpeechSynthesis: onerror", event.error);
-                         stopWaveAnimation(); 
-                         setAIState('idle'); // Set AI state back to idle on error
-                    }; 
+                    this.speech.onstart = startWaveAnimation; 
+                    this.speech.onend = stopWaveAnimation; 
+                    this.speech.onerror = stopWaveAnimation; 
                 }
 
                 initVoice() {
@@ -1025,45 +872,30 @@
                                      voices[0]; 
                          if (!this.voice) {
                              console.warn("No suitable English voice found. Speech might not work.");
-                         } else {
-                             console.log("Using voice:", this.voice.name);
                          }
                     };
-                    // Wait for voices to be loaded if they aren't immediately available
                     if (this.speech.getVoices().length === 0) {
                          this.speech.onvoiceschanged = setVoice; 
-                         console.log("Waiting for voices...");
                     } else {
                         setVoice();
                     }
                 }
 
                 speak(text) {
-                    if (!text || !this.voice) {
-                         console.log("Speak request ignored: no text or no voice.");
-                         return;
-                    }
+                    if (!text || !this.voice) return;
                     if (this.speech.speaking) {
                        this.speech.cancel(); 
-                       console.log("Cancelling previous speech.");
                     }
                     const utterance = new SpeechSynthesisUtterance(text);
                     utterance.voice = this.voice; 
                     utterance.rate = 1.1; 
                     utterance.pitch = 1.2; 
 
-                    console.log("Speaking:", text);
                     this.speech.speak(utterance);
-                     // Manually start wave animation and speaking state immediately
-                     startWaveAnimation();
-                     setAIState('speaking');
                 }
                  
                  cancelSpeech() {
-                     if (this.speech.speaking || this.speech.pending) {
-                         this.speech.cancel();
-                         console.log("Speech cancelled.");
-                     }
+                     this.speech.cancel();
                  }
 
                 _chooseResponse(responses) {
@@ -1176,12 +1008,6 @@
                     const sanitizedPrompt = lowerPrompt.replace(/[.,!?]/g, '').trim(); 
                     let response;
                     
-                    // Set state to thinking briefly while processing
-                    setAIState('thinking');
-
-                    // Use a small timeout before generating response to simulate thinking time
-                    await new Promise(resolve => setTimeout(resolve, 500)); // 500ms thinking delay
-
                     if (sanitizedPrompt.includes("novel") || sanitizedPrompt.includes("story") || sanitizedPrompt.includes("book") || sanitizedPrompt.includes("write")) {
                         metrics.novelIdeas++; 
                         if (sanitizedPrompt.includes("idea") || sanitizedPrompt.includes("concept") || sanitizedPrompt.includes("start")) {
@@ -1295,118 +1121,63 @@
              // --- Video Playback and Button Logic ---
              function updatePlayPauseButtonState() {
                  if (mainVideo.paused || mainVideo.ended) {
-                     videoPlayPauseButton.textContent = '▶'; 
+                     videoPlayPauseButton.textContent = '▶'; // Play icon
                      videoPlayPauseButton.classList.remove('playing');
                  } else {
-                     videoPlayPauseButton.textContent = '❚❚'; 
+                     videoPlayPauseButton.textContent = '❚❚'; // Pause icon
                      videoPlayPauseButton.classList.add('playing');
                  }
              }
 
              videoPlayPauseButton.addEventListener('click', () => {
-                 console.log("Play/Pause button clicked");
                  if (mainVideo.paused || mainVideo.ended) {
-                     console.log("Attempting to play main video...");
                      mainVideo.play().catch(error => {
-                         console.error("Main video playback failed:", error);
-                         alert("Could not start main video playback."); 
+                         console.error("Video playback failed:", error);
                      });
                  } else {
-                     console.log("Attempting to pause main video...");
                      mainVideo.pause();
                  }
              });
 
              // PiP Button Logic - Reusable function for both PiP buttons
-             async function togglePictureInPicture() {
-                 console.log("PiP toggle requested for main video.");
-                 // Check if PiP is supported and if mainVideo is capable
-                 if (!('pictureInPictureEnabled' in document) || !document.pictureInPictureEnabled || !mainVideo || mainVideo.disablePictureInPicture) {
-                      console.log("PiP not supported or disabled for main video.");
-                      alert("Picture-in-Picture is not supported in your browser or by this video.");
-                      return;
+             function togglePictureInPicture() {
+                 // Check if PiP is supported and not already active for *this* video
+                 if ('pictureInPictureEnabled' in document && document.pictureInPictureEnabled) {
+                     if (document.pictureInPictureElement === mainVideo) {
+                         document.exitPictureInPicture().catch(console.error);
+                     } else {
+                         mainVideo.requestPictureInPicture().catch(error => {
+                             console.error("PiP request failed:", error);
+                             alert("Could not start Picture-in-Picture. Make sure the video is playing first.");
+                         });
+                     }
+                 } else {
+                     alert("Picture-in-Picture is not supported in your browser.");
                  }
-
-                  if (document.pictureInPictureElement === mainVideo) {
-                     // If THIS video is already in PiP, exit
-                     console.log("Exiting PiP for main video...");
-                     document.exitPictureInPicture()
-                      .catch(error => console.error("PiP exit failed:", error));
-                  } else if (!document.pictureInPictureElement) {
-                      // If no video is in PiP, request PiP for mainVideo
-                      console.log("Attempting to enter PiP for main video...");
-                      try {
-                          // Attempt to play the video first if it's not playing
-                          // PiP often requires the video to be playing or recently played
-                          if (mainVideo.paused && mainVideo.readyState >= mainVideo.HAVE_METADATA) { // Check if paused and at least metadata is loaded
-                             console.log("Main video paused, attempting play before PiP request...");
-                              // We don't need to await play here if the click is the user gesture
-                              // and the PiP request is immediate. Await is needed if play happens first,
-                              // but direct button -> requestPiP is usually sufficient.
-                              mainVideo.play().catch(playError => console.log("Play before PiP failed:", playError)); 
-                              console.log("Requesting PiP for main video...");
-                              await mainVideo.requestPictureInPicture(); // Then request PiP
-                              console.log("PiP request successful.");
-                          } else if (!mainVideo.paused) {
-                               // Video is already playing, just request PiP
-                              console.log("Main video playing, requesting PiP...");
-                              await mainVideo.requestPictureInPicture();
-                              console.log("PiP request successful.");
-                          } else {
-                               // Video is ended or not ready
-                               console.warn("Main video not in a state to play or request PiP (paused/ended). Ready state:", mainVideo.readyState);
-                               alert("Could not start Picture-in-Picture. Please ensure the video is loaded and try clicking play first.");
-                          }
-
-                      } catch(error) {
-                          console.error("PiP request failed:", error);
-                           let errorMessage = "Could not start Picture-in-Picture.";
-                           if (error.name === 'NotAllowedError') {
-                               errorMessage += " Browser requires a user gesture (like clicking play first) or permission.";
-                           } else if (error.name === 'InvalidStateError') {
-                               errorMessage += " Video is not in a suitable state (e.g., metadata not loaded, source error).";
-                           } else if (error.name === 'TypeError' && !mainVideo.src) {
-                               errorMessage += " Video source is not set.";
-                           }
-                          alert(errorMessage + " Check console for details."); 
-                      }
-                  } else {
-                       // Another video might be in PiP
-                       console.log("Another video is already in PiP mode.");
-                      alert("Another video is already in Picture-in-Picture mode.");
-                  }
              }
 
              // Attach PiP functionality to both buttons
              videoPipButton.addEventListener('click', togglePictureInPicture);
              pipIcon.addEventListener('click', (e) => {
-                 console.log("PiP icon on AI rectangle clicked");
-                 e.stopPropagation(); // Prevent triggering parent click (toggles chat)
+                 e.stopPropagation(); // Prevent triggering parent click
                  togglePictureInPicture();
              });
 
-            // Listen for video events on the main video to update button and state
+            // Listen for video events to update button and state
              mainVideo.addEventListener('play', updatePlayPauseButtonState);
              mainVideo.addEventListener('pause', updatePlayPauseButtonState);
              mainVideo.addEventListener('ended', updatePlayPauseButtonState);
              mainVideo.addEventListener('loadedmetadata', updatePlayPauseButtonState); 
 
-             // Listen for PiP events on the main video
+             // Listen for PiP events
             mainVideo.addEventListener('enterpictureinpicture', () => {
-                console.log('Main video entered PiP mode');
-                 // Hide the video box when the video goes into PiP
-                 videoBox.style.display = 'none'; 
-                 // The video element is now in the PiP window, but still accessible via mainVideo var
-                 updatePlayPauseButtonState(); // Update icon in case PiP state changes UI state
+                console.log('Video entered PiP mode');
+                 updatePlayPauseButtonState();
             });
 
             mainVideo.addEventListener('leavepictureinpicture', () => {
-                console.log('Main video left PiP mode');
-                // Show the video box again when it exits PiP
-                 videoBox.style.display = 'block'; 
-                 updatePlayPauseButtonState(); // Update icon
-                 // It might be good to resume play here too, depending on desired UX
-                 // mainVideo.play().catch(e => console.log("Play on PiP exit failed:", e));
+                console.log('Video left PiP mode');
+                 updatePlayPauseButtonState();
             });
 
 
@@ -1427,20 +1198,11 @@
 
                 metrics.chatTurns++;
 
-                // Set AI state based on user input activity
-                 setAIState('listening'); // Maybe 'listening' or 'thinking' while waiting for response?
-
                 const response = await Cyrus.generateText(text); 
                 logChatMessage(response, 'cyrus');
-                
-                // Speak the response - state change to 'speaking' happens inside Cyrus.speak events
                 Cyrus.speak(response); 
-                // startWaveAnimation is now called by Cyrus.speak.onstart
+                startWaveAnimation(); 
                 
-                // The AI state will transition to 'speaking' then 'idle' via the speech events
-                // If the response was a command (like new thought, calc, search) that doesn't speak,
-                // the state needs to revert from thinking. We handle this in setAIState timeout.
-
                 cyrusLog.removeChild(thinkingEntry); userInput.disabled = false; userInput.focus();
                 saveMetrics(); 
                 resetActivityTimeout(); 
@@ -1450,19 +1212,8 @@
                     e.preventDefault(); 
                     handleUserInput(); 
                 } 
-                // Also set state to listening on keydown, might be better than just input
-                // setAIState('listening'); // Or maybe only on 'input' for sustained typing?
                 resetActivityTimeout(); 
             });
-            // Initial state when user focuses the input
-             userInput.addEventListener('focus', () => setAIState('listening'));
-             userInput.addEventListener('blur', () => { 
-                 // Go to idle only if not currently speaking/thinking/listening from other actions
-                 if (!Cyrus.speech.speaking && currentAIState !== 'thinking') {
-                     setAIState('idle');
-                 }
-             });
-
 
             // --- FEED GENERATION AND RENDERING ---
             const internalThoughts = [ 
@@ -1526,10 +1277,7 @@
                     if (!post.replies) post.replies = [];
                     post.replies.push({ sender: 'user', content: userReply.trim(), timestamp: Date.now() });
 
-                    // Set AI state to thinking while generating reply
-                    setAIState('thinking');
                     const cyrusResponse = await Cyrus.generateText(userReply.trim(), post.content); 
-                    
                     post.replies.push({ sender: 'cyrus', content: cyrusResponse, timestamp: Date.now() });
                     
                     localStorage.setItem('cyrusTweetsV2', JSON.stringify(feedPosts));
@@ -1538,7 +1286,7 @@
                     resetActivityTimeout(); 
                      const replySpeech = Cyrus._makeChildLike("I replied to that on the feed!");
                      Cyrus.speak(replySpeech); 
-                     // State changes to speaking/idle handled by speak events
+                     startWaveAnimation(); 
                 }
             }
 
@@ -1561,7 +1309,7 @@
                 renderFeed(); 
                  const postSpeech = Cyrus._makeChildLike("I had a new thought for the feed!");
                  Cyrus.speak(postSpeech);
-                 // State changes to speaking/idle handled by speak events
+                 startWaveAnimation(); 
             }
 
             // --- MIND BOX RENDERING ---
@@ -1600,60 +1348,35 @@
 
              // Calculate initial offsets based on loaded/default positions
              const aiRectInitial = aiCircle.getBoundingClientRect();
-             // If interface is hidden, use current styled left/top (which might be default CSS values)
-             const interfaceRectInitial = cyrusInterface.style.display === 'flex' ? cyrusInterface.getBoundingClientRect() : { left: parseFloat(cyrusInterface.style.left) || 0, top: parseFloat(cyrusInterface.style.top) || 0 }; 
+             const interfaceRectInitial = cyrusInterface.getBoundingClientRect();
              const videoCircleRectInitial = videoCircle.getBoundingClientRect();
-             const videoBoxRectInitial = videoBox.style.display !== 'none' ? videoBox.getBoundingClientRect() : { left: parseFloat(videoBox.style.left) || 0, top: parseFloat(videoBox.style.top) || 0 };
+             const videoBoxRectInitial = videoBox.getBoundingClientRect();
 
-              // Handle potential NaN if styles are empty initially and provide reasonable defaults
-              _interfaceOffsetX = isNaN(interfaceRectInitial.left) ? (aiRectInitial.width + 20) : interfaceRectInitial.left - aiRectInitial.left; // Default 20px right
-              _interfaceOffsetY = isNaN(interfaceRectInitial.top) ? 0 : interfaceRectInitial.top - aiRectInitial.top; // Default align top
+             _interfaceOffsetX = interfaceRectInitial.left - aiRectInitial.left;
+             _interfaceOffsetY = interfaceRectInitial.top - aiRectInitial.top;
 
-              _videoBoxOffsetX = isNaN(videoBoxRectInitial.left) ? (videoCircleRectInitial.width / 2 - (videoBox.offsetWidth || 600) / 2) : videoBoxRectInitial.left - videoCircleRectInitial.left; // Default below, centered (use max-width 600 if offsetWidth is 0)
-             _videoBoxOffsetY = isNaN(videoBoxRectInitial.top) ? (videoCircleRectInitial.height + 20) : videoBoxRectInitial.top - videoCircleRectInitial.top; // Default below, 20px gap
+             _videoBoxOffsetX = videoBoxRectInitial.left - videoCircleRectInitial.left;
+             _videoBoxOffsetY = videoBoxRectInitial.top - videoCircleRectInitial.top;
 
 
             // Position dependent elements (Sound Wave)
             // Use requestAnimationFrame to ensure elements are sized before positioning
             requestAnimationFrame(() => {
                  positionSoundWave(); 
-                 
+                 // The video box starts hidden, it will be positioned when shown on click
+                 // The chat interface also starts hidden
+
                  // Check for PiP support and show the buttons if available
                  if ('pictureInPictureEnabled' in document && document.pictureInPictureEnabled) {
                      videoPipButton.style.display = 'block'; // Show PiP button in video box
                      pipIcon.style.display = 'flex'; // Show PiP icon on AI circle
-                     console.log("Picture-in-Picture is supported.");
                  } else {
                      videoPipButton.style.display = 'none'; // Hide PiP button if not supported
                      pipIcon.style.display = 'none'; // Hide PiP icon if not supported
-                      console.log("Picture-in-Picture is not supported in this browser.");
                  }
 
-                 // Ensure initial play/pause button state for main video is correct
+                 // Ensure initial play/pause button state is correct
                  updatePlayPauseButtonState();
-
-                 // Start the AI Avatar video loop on load
-                 if (aiAvatarVideo) {
-                      aiAvatarVideo.play().catch(error => {
-                          console.warn("AI avatar video autoplay prevented:", error);
-                          // Fallback if autoplay is blocked
-                          // You could display static "AI" text or an image here
-                          aiCircle.textContent = "AI"; // Show fallback text
-                          // Remove the video element if fallback text is shown
-                          if (aiAvatarVideo.parentNode) {
-                             aiAvatarVideo.parentNode.removeChild(aiAvatarVideo);
-                          }
-                      });
-                      aiAvatarVideo.addEventListener('ended', () => { // Restart loop manually if needed (should be handled by loop attribute)
-                         if (!aiAvatarVideo.loop) {
-                             aiAvatarVideo.currentTime = 0;
-                             aiAvatarVideo.play().catch(e => console.warn("AI video loop restart failed:", e));
-                         }
-                      });
-                 } else {
-                     console.error("AI avatar video element not found!");
-                 }
-
 
             });
 
@@ -1684,10 +1407,9 @@
             }
 
             // Set up tab switching
-            chatTab.addEventListener('click', () => { setActiveTab(chatTab, chatContainer); resetActivityTimeout(); });
-            feedTab.addEventListener('click', () => { setActiveTab(feedTab, feedContainer); renderFeed(); resetActivityTimeout(); });
-            mindBoxTab.addEventListener('click', () => { setActiveTab(mindBoxTab, mindBoxContainer); renderMindBox(); resetActivityTimeout(); });
-
+            chatTab.addEventListener('click', () => setActiveTab(chatTab, chatContainer));
+            feedTab.addEventListener('click', () => setActiveTab(feedTab, feedContainer));
+            mindBoxTab.addEventListener('click', () => setActiveTab(mindBoxTab, mindBoxContainer));
 
             // Set initial active tab
             setActiveTab(chatTab, chatContainer); 
@@ -1696,16 +1418,8 @@
 
             setInterval(renderMindBox, 1000); 
 
-             // Ensure main video element metadata is loaded
-             if(mainVideo) {
-                 setTimeout(() => { // Small delay to allow DOM layout
-                     mainVideo.load(); 
-                     console.log("Main video load() called.");
-                 }, 100);
-             } else {
-                 console.error("Main video element not found!");
-             }
-
+             // Ensure video element metadata is loaded to get its dimensions correctly
+             mainVideo.load(); 
 
         });
     </script>
