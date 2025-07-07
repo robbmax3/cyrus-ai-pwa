@@ -1,5 +1,5 @@
 :root {
-    --bg-dark: #121212; /* Main background for body */
+    --bg-dark: #000000; /* Pure black background for body */
     --card-bg: #1e1e1e; /* Background for cards, interface */
     --input-bg: #2b2b2b; /* Background for input fields */
     --border-dark: #333; /* Darker borders/separators */
@@ -17,139 +17,35 @@ body {
     background-color: var(--bg-dark); 
     color: var(--text-light); 
     margin: 0; 
-    overflow-x: hidden; /* Prevent horizontal body scrolling */
-    overflow-y: auto; /* IMPORTANT: Allow vertical scrolling for main content */
-    padding: 20px; /* Padding for main content */
-    box-sizing: border-box; /* Include padding in element's total width and height */
-    display: flex; /* Flexbox for main content layout */
-    flex-direction: column;
-    align-items: center; /* Center content horizontally */
+    overflow: hidden; /* Hide body overflow, background video will manage the visual */
+    padding: 0; 
+    box-sizing: border-box; 
+    position: relative; /* Needed for absolute positioning of video */
+    width: 100vw; 
+    height: 100vh; /* Ensure body takes full viewport height */
 }
 
-/* --- Main TV Service Content Area Styles --- */
-.video-container {
-    width: 100%;
-    max-width: 900px; /* Max width for video player */
-    background-color: black;
-    border-radius: 8px;
-    overflow: hidden;
-    margin-bottom: 30px;
-    position: relative; /* For custom controls */
-}
-
-video {
-    width: 100%;
-    height: auto;
-    display: block;
-}
-
-.custom-controls {
-    position: absolute;
-    bottom: 0;
+/* --- Background Video Styles --- */
+#background-video {
+    position: absolute; /* Position relative to body */
+    top: 0;
     left: 0;
-    right: 0;
-    background-color: rgba(0, 0, 0, 0.6);
-    padding: 10px;
-    display: flex;
-    justify-content: center;
-    gap: 10px;
-    opacity: 0;
-    transition: opacity 0.3s ease-in-out;
-}
-
-.video-container:hover .custom-controls,
-.custom-controls:focus-within {
-    opacity: 1;
-}
-
-.custom-controls button {
-    background-color: var(--button-primary);
-    color: white;
-    border: none;
-    padding: 8px 15px;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 16px;
-    transition: background-color 0.2s;
-}
-
-.custom-controls button:hover {
-    background-color: var(--button-hover);
-}
-
-.content-heading {
     width: 100%;
-    max-width: 900px;
-    text-align: left;
-    margin-bottom: 20px;
-    font-size: 1.8em;
-    font-weight: bold;
-}
-
-.content-row {
-    width: 100%;
-    max-width: 900px;
-    display: flex;
-    overflow-x: auto; /* Enable horizontal scrolling */
-    padding-bottom: 20px; /* Space for scrollbar */
-    gap: 20px; /* Space between items */
-    scrollbar-width: thin; /* Firefox */
-    scrollbar-color: var(--accent-blue) var(--card-bg); /* Firefox */
-    margin-bottom: 30px; /* Space below each row */
-}
-
-.content-row::-webkit-scrollbar {
-    height: 8px; /* Height of the scrollbar */
-}
-
-.content-row::-webkit-scrollbar-track {
-    background: var(--card-bg); /* Color of the tracking area */
-    border-radius: 10px;
-}
-
-.content-row::-webkit-scrollbar-thumb {
-    background-color: var(--accent-blue); /* Color of the scroll thumb */
-    border-radius: 10px;
-    border: 2px solid var(--card-bg); /* Padding around scroll thumb */
-}
-
-.content-item {
-    flex-shrink: 0; /* Prevent items from shrinking */
-    width: 300px; /* Fixed width for each item */
-    background-color: var(--card-bg);
-    border-radius: 8px;
-    overflow: hidden;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-    text-align: center;
-    transition: transform 0.2s ease-in-out;
-}
-
-.content-item:hover {
-    transform: translateY(-5px); /* Subtle lift on hover */
-}
-
-.content-item img {
-    width: 100%;
-    height: 169px; /* For 16:9 aspect ratio if thumbnails are consistent */
-    object-fit: cover; /* Ensures image covers area without distortion */
-    display: block;
-}
-
-.content-item h3 {
-    font-size: 1.1em;
-    margin: 10px;
-    white-space: normal; /* Allow text to wrap */
+    height: 100%;
+    object-fit: cover; /* Cover the entire screen without distorting aspect ratio */
+    z-index: -1; /* Place it behind all other content */
+    filter: brightness(0.6); /* Slightly dim the video to make text/UI more readable */
 }
 
 
 /* --- AI Circle (The Floating Avatar) --- */
 #ai-circle {
-    position: fixed;
-    left: 50px; /* Default starting position */
-    top: 50px; /* Default starting position */
+    position: fixed; /* Remains fixed for floating */
+    right: 20px; /* Default starting position (bottom-right) */
+    bottom: 20px; /* Default starting position (bottom-right) */
     width: 70px;
     height: 70px;
-    background-color: var(--text-accent); /* Blue color */
+    background-color: var(--text-accent); 
     border: 2px solid rgba(255, 255, 255, 0.7);
     border-radius: 50%;
     display: flex;
@@ -157,13 +53,13 @@ video {
     align-items: center;
     font-size: 32px;
     font-weight: bold;
-    color: var(--card-bg); /* Dark text for circle */
+    color: var(--card-bg); 
     cursor: grab; /* Indicate draggable */
-    z-index: 1000; /* Ensure it's above other page content */
-    user-select: none; /* Prevent text selection during drag */
-    touch-action: none; /* IMPORTANT: Prevent browser default touch actions like scrolling/zooming */
+    z-index: 1000; 
+    user-select: none; 
+    touch-action: none; /* ESSENTIAL: Prevents browser default touch behaviors */
     box-shadow: 0 6px 20px rgba(0, 170, 255, 0.6);
-    transition: box-shadow 0.2s ease-in-out; /* Smooth hover effect */
+    transition: box-shadow 0.2s ease-in-out; 
 }
 
 #ai-circle:hover {
@@ -176,27 +72,27 @@ video {
 
 /* --- Cyrus Interface (The Chat Window) --- */
 #cyrus-interface { 
-    /* Remove `display: none;` from here. Handled by .hidden class */
-    position: fixed; /* Fixed position for easy dragging */
-    width: 350px; /* Made smaller */
-    height: 500px; /* Made smaller */
+    position: fixed; 
+    width: 350px; /* Small chat window */
+    height: 500px; /* Small chat window */
     background-color: var(--card-bg); 
     border-radius: 20px; 
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); 
-    z-index: 998; /* Below AI circle, above content */
+    z-index: 998; 
     display: flex; /* Ensure it lays out content correctly when visible */
     flex-direction: column; 
     overflow: hidden; 
     border: 1px solid var(--border-dark); 
-    cursor: grab; /* Indicate draggable */
-    touch-action: none; /* IMPORTANT: Prevent browser default touch actions like scrolling/zooming */
+    cursor: grab; 
+    touch-action: none; /* ESSENTIAL: Prevents browser default touch behaviors */
 }
 #cyrus-interface.dragging {
     cursor: grabbing;
 }
 
-/* The 'hidden' class now solely controls visibility via 'display' property */
-.hidden { display: none !important; }
+.hidden { 
+    display: none !important; /* Forces hiding */
+}
 
 #nav-tabs { 
     display: flex; 
@@ -235,8 +131,8 @@ video {
     padding: 20px; 
     overflow-y: auto; 
     display: flex; 
-    flex-direction: column-reverse; /* Shows latest messages at bottom */
-    align-items: flex-start; /* IMPORTANT: Default alignment for messages to the left */
+    flex-direction: column-reverse; 
+    align-items: flex-start; /* Default alignment for messages to the left */
     scrollbar-width: none; 
 }
 #cyrus-log::-webkit-scrollbar {
@@ -414,15 +310,6 @@ video {
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
-    body {
-        padding: 10px;
-    }
-    .content-heading, .video-container, .content-row {
-        padding: 0; /* Remove horizontal padding for these sections */
-    }
-    .content-item {
-        width: 250px; /* Slightly smaller items on smaller screens */
-    }
     #cyrus-interface {
         width: 95%; /* Wider on smaller screens */
         height: 80vh; /* Taller on smaller screens */

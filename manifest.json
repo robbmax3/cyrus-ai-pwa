@@ -1,11 +1,11 @@
 {
-    "name": "Cyrus AI TV",
-    "short_name": "CyrusTV",
-    "description": "Your personalized AI-driven TV service.",
+    "name": "Cyrus AI Video",
+    "short_name": "CyrusVideo",
+    "description": "Your AI companion with video narration.",
     "start_url": "./",
     "display": "standalone",
-    "background_color": "#141414",
-    "theme_color": "#007bff",
+    "background_color": "#000000",
+    "theme_color": "#00aaff",
     "icons": [
         {
             "src": "/icon-192x192.png",

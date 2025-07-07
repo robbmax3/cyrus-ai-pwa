@@ -3,85 +3,503 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Cyrus AI TV</title>
+    <title>Cyrus AI</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#1e1e1e">
-    <link rel="stylesheet" href="style.css"> <!-- Link to external CSS -->
-    
-    <!-- PWA meta tags for iOS -->
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Cyrus TV">
-    <link rel="apple-touch-icon" href="icon-192x192.png">
-    <link rel="icon" href="icon-192x192.png" type="image/png">
+    <style>
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
+            background-color: #121212; /* Dark background */
+            color: #e0e0e0; 
+            margin: 0; 
+            overflow: hidden; /* Prevent body scrolling when elements are dragged */
+        }
+
+        /* --- Base styles for all floating elements --- */
+        .floating-element {
+             position: fixed;
+            cursor: grab; 
+            z-index: 1000; /* High z-index by default */
+            user-select: none; 
+             transition: box-shadow 0.2s ease-in-out;
+             touch-action: none; /* Prevent default touch actions like scrolling/zooming */
+             box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5); /* Default shadow */
+        }
+         .floating-element:hover {
+             box-shadow: 0 8px 25px rgba(0, 0, 0, 0.8); /* Default hover shadow */
+         }
+         .floating-element.dragging {
+             cursor: grabbing;
+         }
+
+         /* AI Rectangle (formerly AI Circle) */
+        #ai-circle { /* Keep ID for compatibility with existing JS */
+            left: 50px; 
+            top: 50px; 
+            width: 200px; /* Rectangle width */
+            height: 60px; /* Rectangle height */
+            border: 2px solid rgba(255, 255, 255, 0.7);
+            border-radius: 10px; /* Slightly rounded corners */
+             overflow: hidden; /* Clip content to border-radius */
+            background-color: #00aaff; /* Fallback background */
+             box-shadow: 0 6px 20px rgba(0, 170, 255, 0.6);
+        }
+         #ai-circle:hover {
+             box-shadow: 0 8px 25px rgba(0, 170, 255, 0.8);
+         }
+
+         /* Style for the video INSIDE the AI rectangle */
+         #ai-avatar-video {
+             display: block; 
+             width: 100%; 
+             height: 100%; 
+             object-fit: cover; /* Cover the area without distortion, cropping if needed */
+             pointer-events: none; /* Allow clicks to pass through to the parent div for dragging/toggling */
+         }
+
+
+         /* Video Circle */
+        #video-circle {
+            left: 280px; /* Default different position to avoid overlap */
+            top: 50px; /* Default starting position */
+             width: 70px; /* Circle dimensions */
+             height: 70px;
+             border-radius: 50%; /* Make it a circle */
+             display: flex;
+             justify-content: center;
+             align-items: center;
+             overflow: hidden; /* Needed for border-radius */
+             background-color: #ff6600; 
+             box-shadow: 0 6px 20px rgba(255, 102, 0, 0.6);
+             font-size: 24px; 
+             color: white;
+        }
+         #video-circle:hover {
+             box-shadow: 0 8px 25px rgba(255, 102, 0, 0.8);
+         }
+
+        /* --- PiP Icon on AI Rectangle --- */
+        #pip-icon {
+            position: absolute; /* Position relative to parent #ai-circle */
+            bottom: -8px; /* Adjust position as needed */
+            right: -8px; /* Adjust position as needed */
+            width: 28px; /* Make it a bit larger */
+            height: 28px; /* Make it a bit larger */
+            background-color: rgba(0, 0, 0, 0.6); 
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 18px; /* Adjust font size for icon */
+            cursor: pointer;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            transition: background-color 0.2s ease-in-out;
+            z-index: 1001; /* Higher than AI circle */
+             user-select: none;
+             display: none; /* Hidden by default, shown by JS if supported */
+        }
+        #pip-icon:hover {
+            background-color: rgba(0,0,0,0.8);
+        }
+
+
+        /* --- Sound Wave Visualization --- */
+        #sound-wave {
+            position: fixed; 
+            display: flex; 
+            align-items: flex-end; 
+            justify-content: space-between; 
+            width: 50px; 
+            height: 30px; 
+            pointer-events: none; 
+            z-index: 999; 
+            opacity: 0; 
+            transition: opacity 0.3s ease-in-out;
+        }
+
+        #sound-wave.speaking {
+            opacity: 1; 
+        }
+
+        .sound-wave-bar {
+            width: 4px; 
+            height: 2px; 
+            background-color: #00aaff; 
+            border-radius: 2px; 
+            transition: height 0.1s ease-out; 
+        }
+
+
+        /* --- Cyrus Interface (The Chat Window) --- */
+        #cyrus-interface { 
+            display: none; 
+            position: fixed; 
+            width: 90%; 
+            max-width: 500px; 
+            height: 70vh; 
+            background-color: #1e1e1e; 
+            border-radius: 20px; 
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); 
+            z-index: 998; 
+            flex-direction: column; 
+            overflow: hidden; 
+            border: 1px solid #333; 
+            cursor: grab; 
+            touch-action: none; 
+        }
+        #cyrus-interface.dragging {
+            cursor: grabbing;
+        }
+
+
+        /* --- Video Box --- */
+        #video-box {
+            display: none; 
+            position: fixed; 
+            width: 80%; 
+            max-width: 600px; 
+            height: auto; 
+            background-color: #000; 
+            border-radius: 20px; 
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7); 
+            z-index: 996; 
+            overflow: hidden; 
+            cursor: grab; 
+            touch-action: none; 
+            position: fixed; 
+        }
+         #video-box.dragging {
+             cursor: grabbing;
+         }
+
+        #main-video {
+            display: block; 
+            width: 100%;
+            height: auto; 
+            object-fit: cover; 
+        }
+
+        #video-play-pause-button {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10; 
+            background-color: rgba(0, 0, 0, 0.6); 
+            color: white;
+            font-size: 40px; 
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            border: 2px solid rgba(255, 255, 255, 0.8);
+            transition: opacity 0.3s ease-in-out;
+             user-select: none;
+        }
+         #video-play-pause-button:hover {
+             background-color: rgba(0, 0, 0, 0.8);
+         }
+
+        #video-play-pause-button.playing {
+            opacity: 0; 
+            pointer-events: none; 
+        }
+
+         /* --- PiP Button inside Video Box --- */
+        #video-pip-button {
+            position: absolute;
+            top: 10px; 
+            right: 10px; 
+            z-index: 10; 
+            background-color: rgba(0, 0, 0, 0.6); 
+            color: white;
+            font-size: 18px; 
+            padding: 8px 12px; 
+            border-radius: 8px; 
+            cursor: pointer;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            transition: background-color 0.2s ease-in-out;
+             user-select: none;
+             display: none; 
+        }
+         #video-pip-button:hover {
+             background-color: rgba(0, 0, 0, 0.8);
+         }
+         #video-pip-button::before {
+             content: '❐'; 
+             margin-right: 4px;
+             font-size: 1.2em;
+             line-height: 1;
+             vertical-align: middle;
+         }
+
+
+        .hidden { display: none !important; }
+
+        #nav-tabs { 
+            display: flex; 
+            border-bottom: 1px solid #333; 
+        }
+        .tab-button { 
+            flex-grow: 1; 
+            background: none; 
+            border: none; 
+            color: #888; 
+            padding: 15px; 
+            font-size: 16px; 
+            font-weight: bold; 
+            cursor: pointer; 
+            transition: color 0.2s, border-bottom 0.2s; 
+            border-bottom: 3px solid transparent; 
+        }
+        .tab-button.active { 
+            color: #00aaff; 
+            border-bottom: 3px solid #00aaff; 
+        }
+
+        .content-area { 
+            flex-grow: 1; 
+            display: flex; 
+            flex-direction: column; 
+            overflow-y: auto; 
+        } 
+        #chat-container { 
+            height: 100%; 
+            display: flex; 
+            flex-direction: column; 
+        } 
+        #cyrus-log { 
+            flex-grow: 1; 
+            padding: 20px; 
+            overflow-y: auto; 
+            display: flex; 
+            flex-direction: column-reverse; 
+            scrollbar-width: none; 
+        }
+        #cyrus-log::-webkit-scrollbar {
+            display: none; 
+        }
+
+        .log-entry { 
+            margin-bottom: 15px; 
+            max-width: 80%; 
+            padding: 10px 15px; 
+            border-radius: 18px; 
+            line-height: 1.4; 
+            animation: fadeIn 0.5s ease-out forwards; 
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .user-msg { 
+            background-color: #007bff; 
+            color: white; 
+            align-self: flex-end; 
+            border-bottom-right-radius: 4px; 
+        }
+        .cyrus-msg { 
+            background-color: #333; 
+            color: #e0e0e0; 
+            align-self: flex-start; 
+            border-bottom-left-radius: 4px; 
+        }
+        .thinking-msg { 
+            background-color: transparent; 
+            color: #888; 
+            font-style: italic; 
+            align-self: flex-start; 
+        }
+
+        #input-area { 
+            display: flex; 
+            padding: 10px; 
+            border-top: 1px solid #333; 
+            background-color: #1e1e1e; 
+            flex-shrink: 0; 
+        }
+        #user-input { 
+            flex-grow: 1; 
+            background-color: #2b2b2b; 
+            border: none; 
+            border-radius: 20px; 
+            padding: 12px 15px; 
+            color: white; 
+            font-size: 16px; 
+            transition: box-shadow 0.2s;
+        }
+        #user-input:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px #00aaff;
+        }
+        #user-input:disabled {
+            background-color: #222;
+        }
+
+        /* Feed Container Styles */
+        #feed-container { 
+            padding: 10px; 
+            scrollbar-width: none; 
+        }
+        #feed-container::-webkit-scrollbar {
+            display: none; 
+        }
+
+        .tweet-card { 
+            background-color: #1e1e1e; 
+            border: 1px solid #38444d; 
+            border-radius: 15px; 
+            margin-bottom: 10px; 
+            padding: 15px; 
+        }
+        .tweet-header { 
+            display: flex; 
+            align-items: center; 
+            margin-bottom: 10px; 
+        }
+        .tweet-pfp { 
+            width: 40px; 
+            height: 40px; 
+            border-radius: 50%; 
+            background-color: #00aaff; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            font-size: 20px; 
+            font-weight: bold; 
+            color: #1e1e1e; 
+            margin-right: 10px; 
+            flex-shrink: 0; 
+        }
+        .tweet-author { 
+            font-weight: bold; 
+        } 
+        .tweet-handle { 
+            color: #8899a6; 
+            font-size: 14px; 
+        }
+        .tweet-content { 
+            font-size: 16px; 
+            line-height: 1.5; 
+            white-space: pre-wrap; 
+            margin-bottom: 15px; 
+        }
+        .tweet-timestamp { 
+            color: #8899a6; 
+            font-size: 13px; 
+        }
+        .tweet-actions { 
+            display: flex; 
+            margin-top: 15px; 
+            padding-top: 10px; 
+            border-top: 1px solid #38444d; 
+        }
+        .reply-button { 
+            background: none; 
+            border: none; 
+            color: #00aaff; 
+            cursor: pointer; 
+            font-size: 14px; 
+            font-weight: bold; 
+        }
+        .replies-container { 
+            margin-top: 15px; 
+            margin-left: 15px; 
+            border-left: 2px solid #38444d; 
+            padding-left: 15px; 
+        }
+        .reply { 
+            display: flex; 
+            align-items: flex-start; 
+            margin-bottom: 15px; 
+        }
+        .reply .tweet-pfp { 
+            width: 30px; 
+            height: 30px; 
+            font-size: 16px; 
+        }
+        .reply-content { 
+            display: flex; 
+            flex-direction: column; 
+        }
+
+        /* Novel Mind Tab Styles */
+        #novel-mind-container { padding: 20px; } /* Note: HTML uses #mind-box-container */
+        #mind-box-container { 
+            padding: 20px; 
+            scrollbar-width: none; 
+        }
+        #mind-box-container::-webkit-scrollbar {
+            display: none; 
+        }
+        .mind-card { 
+            background-color: #2b2b2b; 
+            border-radius: 15px; 
+            padding: 15px; 
+            margin-bottom: 15px; 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3); 
+        }
+        .mind-card h4 { 
+            margin-top: 0; 
+            color: #00aaff; 
+        }
+        .mind-stats p { 
+            margin: 5px 0; 
+            font-size: 15px; 
+        }
+    </style>
 </head>
 <body>
-    <!-- --- Main TV Service Content Area --- -->
-    <div class="video-container">
-        <video id="myVideo" controls autoplay loop playsinline>
-            <source src="sample-video.mp4" type="video/mp4">
-            Your browser does not support the video tag.
-        </video>
-        <div class="custom-controls">
-            <button id="playPauseButton">Play / Pause</button>
-            <button id="pipButton">Picture-in-Picture</button>
-        </div>
+    <!-- Floating Elements -->
+    <!-- AI is now a rectangle with a video background -->
+    <div id="ai-circle" class="floating-element"> <!-- Used floating-element class -->
+         <video id="ai-avatar-video" autoplay loop muted playsinline>
+             <!-- IMPORTANT: Replace these with YOUR video sources -->
+             <!-- This video should display "Cyrus AI" perhaps with animation -->
+             <!-- Placeholder video for now - REPLACE THIS SRC -->
+             <source id="ai-video-source-mp4" src="https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4" type="video/mp4">
+             <!-- Consider adding other formats like webm -->
+             <source id="ai-video-source-webm" src="https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.webm" type="video/webm">
+             Your browser does not support the video tag.
+         </video>
+        <div id="pip-icon">❐</div> <!-- PiP icon on the AI rectangle -->
+    </div>
+    <!-- Video Circle (remains a circle) -->
+    <div id="video-circle" class="floating-element"> <!-- Used floating-element class -->
+        Vid
     </div>
 
-    <h1 class="content-heading">Cyrus AI Recommendations</h1>
-    <div class="content-row">
-        <div class="content-item">
-            <img src="https://via.placeholder.com/300x169/0000FF/FFFFFF?text=Recommended+1" alt="Content Thumbnail">
-            <h3>Cyrus's Story Idea 1</h3>
-        </div>
-        <div class="content-item">
-            <img src="https://via.placeholder.com/300x169/FF0000/FFFFFF?text=Recommended+2" alt="Content Thumbnail">
-            <h3>Plot Twist Preview</h3>
-        </div>
-        <div class="content-item">
-            <img src="https://via.placeholder.com/300x169/00FF00/FFFFFF?text=Recommended+3" alt="Content Thumbnail">
-            <h3>Character Arc Insight</h3>
-        </div>
-        <div class="content-item">
-            <img src="https://via.placeholder.com/300x169/FFFF00/000000?text=Recommended+4" alt="Content Thumbnail">
-            <h3>World Building Secrets</h3>
-        </div>
-        <div class="content-item">
-            <img src="https://via.placeholder.com/300x169/00FFFF/000000?text=Recommended+5" alt="Content Thumbnail">
-            <h3>AI Creative Sparks</h3>
-        </div>
+    <!-- Sound Wave Element -->
+    <div id="sound-wave">
+        <div class="sound-wave-bar"></div>
+        <div class="sound-wave-bar"></div>
+        <div class="sound-wave-bar"></div>
+        <div class="sound-wave-bar"></div>
+        <div class="sound-wave-bar"></div>
+        <div class="sound-wave-bar"></div>
+        <div class="sound-wave-bar"></div>
+        <div class="sound-wave-bar"></div>
     </div>
 
-    <!-- Added another row to demonstrate scrollability for the "TV service" feel -->
-    <h1 class="content-heading">Your Top Novel Brainstorms</h1>
-    <div class="content-row">
-        <div class="content-item">
-            <img src="https://via.placeholder.com/300x169/8A2BE2/FFFFFF?text=Brainstorm+1" alt="Content Thumbnail">
-            <h3>The Hero's Journey</h3>
-        </div>
-        <div class="content-item">
-            <img src="https://via.placeholder.com/300x169/FF69B4/000000?text=Brainstorm+2" alt="Content Thumbnail">
-            <h3>Magical Systems Explained</h3>
-        </div>
-        <div class="content-item">
-            <img src="https://via.placeholder.com/300x169/00CED1/000000?text=Brainstorm+3" alt="Content Thumbnail">
-            <h3>Villain Archetypes</h3>
-        </div>
-        <div class="content-item">
-            <img src="https://via.placeholder.com/300x169/DAA520/000000?text=Brainstorm+4" alt="Content Thumbnail">
-            <h3>Setting the Scene</h3>
-        </div>
-        <div class="content-item">
-            <img src="https://via.placeholder.com/300x169/6A5ACD/FFFFFF?text=Brainstorm+5" alt="Content Thumbnail">
-            <h3>Dialogue Tips</h3>
-        </div>
-    </div>
+     <!-- Video Box (for the main video) -->
+     <div id="video-box" class="floating-element"> <!-- Used floating-element class -->
+         <video id="main-video" loop playsinline controlslist="nodownload nofullscreen noremoteplayback">
+             <!-- Replace with your main video source -->
+             <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4">
+             <!-- Add other formats if needed -->
+             Your browser does not support the video tag.
+         </video>
+         <div id="video-play-pause-button">▶</div>
+         <div id="video-pip-button">PiP</div> 
+     </div>
 
 
-    <!-- --- Cyrus AI Floating Elements --- -->
-    <div id="ai-circle">AI</div>
-
-    <div id="cyrus-interface">
+    <div id="cyrus-interface" class="floating-element"> <!-- Used floating-element class -->
         <div id="nav-tabs"> 
             <button id="chat-tab" class="tab-button active">Chat</button> 
             <button id="feed-tab" class="tab-button">Feed</button> 
@@ -116,6 +534,1180 @@
         </div>
     </div>
 
-    <script src="script.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const aiCircle = document.getElementById('ai-circle'); // This is now the AI Rectangle
+             const aiAvatarVideo = document.getElementById('ai-avatar-video'); // Reference to the AI avatar video
+             const aiVideoSourceMp4 = document.getElementById('ai-video-source-mp4'); // Reference to AI video sources
+             const aiVideoSourceWebm = document.getElementById('ai-video-source-webm'); // Reference
+
+            const videoCircle = document.getElementById('video-circle'); 
+            const soundWave = document.getElementById('sound-wave');
+            const soundBars = soundWave.querySelectorAll('.sound-wave-bar');
+            const cyrusInterface = document.getElementById('cyrus-interface');
+            const videoBox = document.getElementById('video-box'); 
+            const mainVideo = document.getElementById('main-video'); 
+            const videoPlayPauseButton = document.getElementById('video-play-pause-button'); 
+            const videoPipButton = document.getElementById('video-pip-button');
+            const pipIcon = document.getElementById('pip-icon'); 
+
+            const cyrusLog = document.getElementById('cyrus-log');
+            const userInput = document.getElementById('user-input');
+            const chatTab = document.getElementById('chat-tab');
+            const feedTab = document.getElementById('feed-tab');
+            const mindBoxTab = document.getElementById('mind-box-tab');
+            const chatContainer = document.getElementById('chat-container');
+            const feedContainer = document.getElementById('feed-container');
+            const mindBoxContainer = document.getElementById('mind-box-container');
+
+             // Define video sources for different AI states (using placeholders - REPLACE THESE!)
+             const aiVideoSources = {
+                 idle: { mp4: 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4', webm: 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.webm' }, 
+                 listening: { mp4: 'https://www.w3schools.com/html/mov_bbb.mp4', webm: 'https://www.w3schools.com/html/mov_bbb.mp4' }, 
+                 thinking: { mp4: 'https://www.w3schools.com/html/mov_bbb.mp4', webm: 'https://www.w3schools.com/html/mov_bbb.mp4' }, 
+                 speaking: { mp4: 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4', webm: 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.webm' }, 
+             };
+
+             let currentAIState = 'idle'; // Keep track of AI state
+             let aiStateTimeout = null; // For transitioning back to idle
+
+            let feedPosts = JSON.parse(localStorage.getItem('cyrusTweetsV2')) || [];
+            let metrics = JSON.parse(localStorage.getItem('cyrusMetrics')) || {
+                chatTurns: 0,
+                feedPosts: 0,
+                feedReplies: 0,
+                novelIdeas: 0,
+                characters: 0,
+                plotPoints: 0,
+                worldElements: 0,
+                sessionStartTime: Date.now() 
+            };
+            
+            let hasWelcomed = localStorage.getItem('cyrusHasWelcomed') === 'true';
+            let activityTimeoutId;
+            const ACTIVITY_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
+
+            // --- AI AVATAR VIDEO STATE MANAGEMENT ---
+            function setAIState(newState) {
+                 // Only change if the state is actually different
+                 if (currentAIState === newState) return; 
+
+                 console.log("AI State:", currentAIState, "->", newState);
+
+                 const sources = aiVideoSources[newState];
+                 if (!sources) {
+                     console.warn("No video sources defined for state:", newState);
+                     // Optionally handle this state visually, e.g., show a fallback image or text
+                     aiVideoSourceMp4.src = ''; 
+                     if(aiVideoSourceWebm) aiVideoSourceWebm.src = '';
+                 } else {
+                     // Only change source if it's different to avoid flickering
+                     // Check if both MP4 and WebM sources are provided and differ
+                     const mp4Changed = aiVideoSourceMp4.src !== (sources.mp4 || '');
+                     const webmChanged = aiVideoSourceWebm && aiVideoSourceWebm.src !== (sources.webm || '');
+
+                     if (mp4Changed || webmChanged) {
+                         aiVideoSourceMp4.src = sources.mp4 || '';
+                         if(aiVideoSourceWebm) aiVideoSourceWebm.src = sources.webm || '';
+                         aiAvatarVideo.load(); // Load the new source
+                         console.log(`AI video source changed to ${newState}`);
+                     } else {
+                         console.log(`AI video source for ${newState} is already loaded.`);
+                     }
+                 }
+                 
+                 currentAIState = newState;
+
+                 // Play the video if it's not already playing
+                 if (aiAvatarVideo.paused || aiAvatarVideo.ended) {
+                     aiAvatarVideo.play().catch(error => {
+                         console.log(`AI video autoplay prevented for state ${newState}:`, error);
+                         // This might happen if the browser requires user interaction to play muted videos
+                         // You could fallback to showing the AI text or an image here if autoplay fails
+                     });
+                 }
+
+                 // Clear any previous timeout
+                 if (aiStateTimeout) clearTimeout(aiStateTimeout);
+
+                 // Set a timeout to go back to idle after a short period in certain states
+                 if (newState === 'listening' || newState === 'thinking') {
+                     aiStateTimeout = setTimeout(() => {
+                         // Only revert to idle if still in this state and not speaking
+                         if (currentAIState === newState && !Cyrus.speech.speaking) {
+                            setAIState('idle');
+                         }
+                     }, 3000); // Revert after 3 seconds
+                 }
+            }
+
+
+            // --- FLOATING ELEMENT POSITIONING/DRAGGING ---
+            let _isDragging = false;
+            let _draggedElement = null; 
+            let _initialMouseX, _initialMouseY;
+            let _initialElementX, _initialElementY; 
+            let _interfaceOffsetX, _interfaceOffsetY; 
+            let _videoBoxOffsetX, _videoBoxOffsetY; 
+
+            const SOUND_WAVE_OFFSET_X = 10; 
+
+            function saveElementPosition(element, x, y) {
+                if (element && element.id) {
+                   localStorage.setItem(`${element.id}X`, x);
+                   localStorage.setItem(`${element.id}Y`, y);
+                }
+            }
+
+            function loadElementPosition(element) {
+                if (element && element.id) {
+                   const storedX = localStorage.getItem(`${element.id}X`);
+                   const storedY = localStorage.getItem(`${element.id}Y`);
+                   if (storedX !== null && storedY !== null && !isNaN(parseFloat(storedX)) && !isNaN(parseFloat(storedY))) { // Check if stored values are valid numbers
+                       element.style.left = `${storedX}px`;
+                       element.style.top = `${storedY}px`;
+                       return true; 
+                   }
+                }
+                return false; 
+            }
+
+            function getElementCoords(element) {
+                const rect = element.getBoundingClientRect();
+                return { x: rect.left, y: rect.top };
+            }
+
+             function positionSoundWave() {
+                const aiRect = aiCircle.getBoundingClientRect();
+                const waveHeight = soundWave.offsetHeight;
+
+                // Position wave to the right of the AI rectangle's right edge, centered vertically
+                const waveLeft = aiRect.right + SOUND_WAVE_OFFSET_X;
+                const waveTop = aiRect.top + aiRect.height / 2 - waveHeight / 2;
+
+                soundWave.style.left = `${waveLeft}px`;
+                soundWave.style.top = `${waveTop}px`;
+            }
+
+            function positionElementLinked(targetElement, anchorElement, offsetX, offsetY) {
+                 const anchorRect = anchorElement.getBoundingClientRect();
+                 let newX = anchorRect.left + offsetX;
+                 let newY = anchorRect.top + offsetY;
+
+                 // Boundary check for the target element
+                 newX = Math.max(0, Math.min(newX, window.innerWidth - targetElement.offsetWidth));
+                 newY = Math.max(0, Math.min(newY, window.innerHeight - targetElement.offsetHeight));
+
+                 targetElement.style.left = `${newX}px`;
+                 targetElement.style.top = `${newY}px`;
+                 saveElementPosition(targetElement, newX, newY);
+            }
+
+
+            function startDrag(e, element) {
+                 // Prevent dragging if the touch/mouse originated on specific interactive elements
+                 if (element === aiCircle && 
+                     (e.target.closest('#sound-wave') || e.target === pipIcon || e.target === aiAvatarVideo) && // Added aiAvatarVideo check
+                     !e.target.closest('#ai-circle')) {
+                     console.log("Drag prevented on AI circle due to target:", e.target.id || e.target.tagName);
+                     return;
+                 }
+                 if (element === cyrusInterface && e.target.closest('#nav-tabs, #input-area') && !e.target.closest('#cyrus-interface')) {
+                     console.log("Drag prevented on Interface due to target:", e.target.id || e.target.tagName);
+                     return; 
+                 }
+                 if (element === videoBox && (e.target.closest('#video-play-pause-button') || e.target.closest('#video-pip-button')) && !e.target.closest('#video-box')) {
+                      console.log("Drag prevented on Video Box due to target:", e.target.id || e.target.tagName);
+                     return; 
+                 }
+
+                _isDragging = true;
+                _draggedElement = element;
+                element.classList.add('dragging');
+
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+                const elementCoords = getElementCoords(element);
+                _initialElementX = elementCoords.x;
+                _initialElementY = elementCoords.y;
+                _initialMouseX = clientX;
+                _initialMouseY = clientY;
+
+                 // Capture offsets based on current visual positions when drag starts
+                 const aiRectCurrent = getElementCoords(aiCircle);
+                 // If the linked element is hidden, calculate offset based on its *default* position (if any is set by CSS or previous JS)
+                 const interfaceLeft = parseFloat(cyrusInterface.style.left) || 0;
+                 const interfaceTop = parseFloat(cyrusInterface.style.top) || 0;
+                 const videoCircleRectCurrent = getElementCoords(videoCircle);
+                 const videoBoxLeft = parseFloat(videoBox.style.left) || 0;
+                 const videoBoxTop = parseFloat(videoBox.style.top) || 0;
+
+
+                 _interfaceOffsetX = interfaceLeft - aiRectCurrent.x;
+                 _interfaceOffsetY = interfaceTop - aiRectCurrent.y;
+
+                 _videoBoxOffsetX = videoBoxLeft - videoCircleRectCurrent.x;
+                 _videoBoxOffsetY = videoBoxTop - videoCircleRectCurrent.y;
+
+
+                console.log(`Starting drag on ${element.id}. Initial mouse: ${_initialMouseX}, ${_initialMouseY}. Initial element: ${_initialElementX}, ${_initialElementY}`);
+                document.body.style.userSelect = 'none';
+                document.body.style.cursor = 'grabbing';
+                 // Attach move and end listeners to the document to ensure they work even if the cursor leaves the element
+                document.addEventListener('mousemove', doDrag);
+                document.addEventListener('touchmove', doDrag, { passive: false }); 
+                document.addEventListener('mouseup', stopDrag);
+                document.addEventListener('touchend', stopDrag);
+                document.addEventListener('touchcancel', stopDrag); 
+            }
+
+            function doDrag(e) {
+                if (!_isDragging || !_draggedElement) return;
+
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+                let newX = _initialElementX + (clientX - _initialMouseX);
+                let newY = _initialElementY + (clientY - _initialMouseY);
+
+                // Boundary checks for dragged element
+                newX = Math.max(0, Math.min(newX, window.innerWidth - _draggedElement.offsetWidth));
+                newY = Math.max(0, Math.min(newY, window.innerHeight - _draggedElement.offsetHeight));
+
+                _draggedElement.style.left = `${newX}px`;
+                _draggedElement.style.top = `${newY}px`;
+
+                saveElementPosition(_draggedElement, newX, newY); 
+
+                // Move linked elements (only if they are visible)
+                if (_draggedElement === aiCircle) {
+                    if (cyrusInterface.style.display === 'flex') {
+                         positionElementLinked(cyrusInterface, aiCircle, _interfaceOffsetX, _interfaceOffsetY);
+                    }
+                    positionSoundWave(); 
+                } else if (_draggedElement === cyrusInterface) {
+                     positionElementLinked(aiCircle, cyrusInterface, -_interfaceOffsetX, -_interfaceOffsetY);
+                     positionSoundWave();
+                } else if (_draggedElement === videoCircle) {
+                    // Only move video box if visible AND not currently in PiP
+                    if (videoBox.style.display !== 'none' && !document.pictureInPictureElement) { 
+                         positionElementLinked(videoBox, videoCircle, _videoBoxOffsetX, _videoBoxOffsetY);
+                    }
+                } else if (_draggedElement === videoBox && !document.pictureInPictureElement) { // Only drag box if not in PiP
+                     positionElementLinked(videoCircle, videoBox, -_videoBoxOffsetX, -_videoBoxOffsetY);
+                 }
+
+                 e.preventDefault(); 
+            }
+
+            function stopDrag() {
+                if (_isDragging && _draggedElement) {
+                    console.log(`Stopping drag on ${_draggedElement.id}`);
+                    _isDragging = false;
+                    _draggedElement.classList.remove('dragging');
+                    _draggedElement = null;
+                    document.body.style.userSelect = '';
+                    document.body.style.cursor = '';
+                     // Remove the temporary listeners added in startDrag
+                    document.removeEventListener('mousemove', doDrag);
+                    document.removeEventListener('touchmove', doDrag, { passive: false });
+                    document.removeEventListener('mouseup', stopDrag);
+                    document.removeEventListener('touchend', stopDrag);
+                    document.removeEventListener('touchcancel', stopDrag);
+                }
+            }
+
+            // Event listeners for initiating drag
+            aiCircle.addEventListener('mousedown', (e) => startDrag(e, aiCircle));
+            aiCircle.addEventListener('touchstart', (e) => startDrag(e, aiCircle));
+            cyrusInterface.addEventListener('mousedown', (e) => startDrag(e, cyrusInterface));
+            cyrusInterface.addEventListener('touchstart', (e) => startDrag(e, cyrusInterface));
+            videoCircle.addEventListener('mousedown', (e) => startDrag(e, videoCircle)); 
+            videoCircle.addEventListener('touchstart', (e) => startDrag(e, videoCircle)); 
+            videoBox.addEventListener('mousedown', (e) => startDrag(e, videoBox)); 
+            videoBox.addEventListener('touchstart', (e) => startDrag(e, videoBox)); 
+
+             // Note: The actual move and end listeners are added/removed dynamically in startDrag/stopDrag
+
+            // --- AI CIRCLE CLICK / INTERFACE TOGGLE ---
+            aiCircle.addEventListener('click', (e) => {
+                 // Prevent triggering if the click was on the pip icon or part of a drag
+                 if (e.target === pipIcon || _isDragging) {
+                     console.log("AI circle click prevented by target or drag state.");
+                     return;
+                 } 
+
+                 console.log("AI circle clicked, toggling interface.");
+
+                if (cyrusInterface.style.display === 'flex') {
+                    cyrusInterface.style.display = 'none';
+                    clearTimeout(activityTimeoutId); 
+                    Cyrus.speech.cancel(); 
+                    stopWaveAnimation(); 
+                } else {
+                    cyrusInterface.style.display = 'flex';
+                    userInput.focus();
+
+                    // Position next to AI circle (prefer right, fallback to left)
+                    const aiRect = aiCircle.getBoundingClientRect();
+                    
+                    let desiredInterfaceLeft = aiRect.right + 20; 
+
+                    if (desiredInterfaceLeft + cyrusInterface.offsetWidth > window.innerWidth) {
+                        desiredInterfaceLeft = aiRect.left - cyrusInterface.offsetWidth - 20; 
+                        if (desiredInterfaceLeft < 0) { 
+                            desiredInterfaceLeft = (window.innerWidth - cyrusInterface.offsetWidth) / 2;
+                        }
+                    }
+
+                    let finalTop = aiRect.top; 
+
+                    if (finalTop + cyrusInterface.offsetHeight > window.innerHeight) {
+                        finalTop = window.innerHeight - cyrusInterface.offsetHeight - 10; 
+                    }
+                    if (finalTop < 0) { 
+                        finalTop = 10;
+                    }
+                     finalTop = Math.min(finalTop, aiRect.top + aiRect.height / 2);
+
+
+                    cyrusInterface.style.left = `${desiredInterfaceLeft}px`;
+                    cyrusInterface.style.top = `${finalTop}px`;
+                    saveElementPosition(cyrusInterface, desiredInterfaceLeft, finalTop);
+                    saveElementPosition(aiCircle, aiRect.left, aiRect.top); 
+                    positionSoundWave(); 
+
+
+                     // Update offset based on final position
+                    _interfaceOffsetX = parseFloat(cyrusInterface.style.left) - aiRect.left;
+                    _interfaceOffsetY = parseFloat(cyrusInterface.style.top) - aiRect.top;
+
+
+                    if (!hasWelcomed) {
+                        const initialWelcomeText = Cyrus._makeChildLike(Cyrus._chooseResponse([
+                            "Hi! I'm here to help you think about your stories!",
+                            "Hey there! Ready to chat about your amazing ideas?",
+                            "Hello! Let's talk about your novel. What big ideas do you have?"
+                        ]));
+                        logChatMessage(initialWelcomeText, 'cyrus'); 
+                        Cyrus.speak(initialWelcomeText);
+                        startWaveAnimation(); 
+                        localStorage.setItem('cyrusHasWelcomed', 'true');
+                        hasWelcomed = true;
+                    } else {
+                        const standardGreeting = "I am here to help. What's on your mind?";
+                        const spokenGreeting = Cyrus._makeChildLike(standardGreeting);
+                        logChatMessage(spokenGreeting, 'cyrus');
+                        Cyrus.speak(spokenGreeting); 
+                         startWaveAnimation(); 
+                    }
+                    resetActivityTimeout(); 
+                }
+            });
+
+             // --- VIDEO CIRCLE CLICK / VIDEO BOX TOGGLE ---
+             videoCircle.addEventListener('click', (e) => {
+                 if (_isDragging) {
+                     console.log("Video circle click prevented by drag state.");
+                     return;
+                 }
+
+                 console.log("Video circle clicked, toggling video box.");
+
+                 if (videoBox.style.display === 'block') { 
+                     videoBox.style.display = 'none';
+                     mainVideo.pause(); // Pause video when hidden
+                      // If it was in PiP, exiting PiP would already pause it in the original element
+                      if (document.pictureInPictureElement === mainVideo) { // Ensure it's THIS video in PiP
+                          console.log("Video box hidden while in PiP, exiting PiP.");
+                        document.exitPictureInPicture(); // Exit PiP if active
+                      }
+                 } else {
+                     videoBox.style.display = 'block';
+
+                     // Position video box relative to video circle (e.g., below and centered)
+                     const videoCircleRect = videoCircle.getBoundingClientRect();
+                     
+                     // Default position below and horizontally centered
+                     let desiredVideoBoxLeft = videoCircleRect.left + videoCircleRect.width / 2 - videoBox.offsetWidth / 2;
+                     let desiredVideoBoxTop = videoCircleRect.bottom + 20; // 20px below
+
+                     // Ensure video box stays within viewport
+                     if (desiredVideoBoxLeft < 0) desiredVideoBoxLeft = 10;
+                     if (desiredVideoBoxLeft + videoBox.offsetWidth > window.innerWidth) {
+                         desiredVideoBoxLeft = window.innerWidth - videoBox.offsetWidth - 10;
+                     }
+                     if (desiredVideoBoxTop < 0) desiredVideoBoxTop = 10;
+                     if (desiredVideoBoxTop + videoBox.offsetHeight > window.innerHeight) {
+                         desiredVideoBoxTop = window.innerHeight - videoBox.offsetHeight - 10;
+                     }
+
+                     videoBox.style.left = `${desiredVideoBoxLeft}px`;
+                     videoBox.style.top = `${desiredVideoBoxTop}px`;
+                     saveElementPosition(videoBox, desiredVideoBoxLeft, desiredVideoBoxTop);
+                     saveElementPosition(videoCircle, videoCircleRect.left, videoCircleRect.top);
+
+                     // Update offset based on final position
+                     _videoBoxOffsetX = parseFloat(videoBox.style.left) - videoCircleRect.left;
+                     _videoBoxOffsetY = parseFloat(videoBox.style.top) - videoCircleRect.top;
+
+
+                     updatePlayPauseButtonState();
+
+                      // Optional: Auto-play the main video when the box is shown (be mindful of browser policies)
+                     mainVideo.play().catch(error => console.log("Main video autoplay on show prevented:", error));
+
+
+                     resetActivityTimeout(); 
+                 }
+             });
+
+
+            // --- INACTIVITY TIMER FOR CHATBOX ---
+            function resetActivityTimeout() {
+                clearTimeout(activityTimeoutId);
+                activityTimeoutId = setTimeout(() => {
+                    console.log("Inactivity timeout reached, hiding chat interface.");
+                    cyrusInterface.style.display = 'none';
+                    Cyrus.speech.cancel(); 
+                    stopWaveAnimation(); 
+                    logChatMessage("I went quiet for a bit. Tap me if you want to chat again!", 'cyrus');
+                }, ACTIVITY_TIMEOUT_MS);
+            }
+
+            // Listen for various activities to reset the timeout
+            userInput.addEventListener('input', resetActivityTimeout); 
+            userInput.addEventListener('keydown', resetActivityTimeout); 
+            chatTab.addEventListener('click', resetActivityTimeout);
+            feedTab.addEventListener('click', resetActivityTimeout);
+            mindBoxTab.addEventListener('click', resetActivityTimeout);
+            cyrusLog.addEventListener('scroll', resetActivityTimeout); 
+            document.body.addEventListener('mousemove', resetActivityTimeout); 
+            document.body.addEventListener('touchstart', resetActivityTimeout); 
+             mainVideo.addEventListener('play', resetActivityTimeout); 
+             mainVideo.addEventListener('pause', resetActivityTimeout); 
+             aiAvatarVideo.addEventListener('play', resetActivityTimeout); // AI Video activity
+             aiAvatarVideo.addEventListener('pause', resetActivityTimeout); // AI Video activity
+
+
+            // --- CYRUS AI CLASS (SELF-CONTAINED BRAIN) ---
+            class CyrusAI {
+                constructor() {
+                    this.stopWords = new Set(['i', 'me', 'my', 'a', 'an', 'the', 'is', 'am', 'are', 'was', 'to', 'for', 'of', 'in', 'it', 'you', 'and', 'but', 'so', 'what', 'how', 'why', 'can', 'do', 'like', 'this', 'that', 'or', 'your', 'about', 'just', 'tell', 'me', 'more', 'what\'s']); 
+                    this.speech = window.speechSynthesis;
+                    this.voice = null;
+                    this.initVoice();
+                    // State changes are handled manually now, not just by onstart/end
+                    this.speech.onstart = () => { 
+                         console.log("SpeechSynthesis: onstart");
+                         startWaveAnimation(); 
+                         setAIState('speaking'); // Set AI state to speaking
+                    }; 
+                    this.speech.onend = () => { 
+                         console.log("SpeechSynthesis: onend");
+                         stopWaveAnimation(); 
+                         setAIState('idle'); // Set AI state back to idle when speech ends
+                    }; 
+                    this.speech.onerror = (event) => { 
+                         console.error("SpeechSynthesis: onerror", event.error);
+                         stopWaveAnimation(); 
+                         setAIState('idle'); // Set AI state back to idle on error
+                    }; 
+                }
+
+                initVoice() {
+                    const setVoice = () => {
+                        const voices = this.speech.getVoices();
+                         this.voice = voices.find(v => v.name.includes("Google") && v.lang.startsWith("en-US")) ||
+                                     voices.find(v => v.name.includes("Google") && v.lang.startsWith("en")) ||
+                                     voices.find(v => v.lang.startsWith("en-US")) ||
+                                     voices[0]; 
+                         if (!this.voice) {
+                             console.warn("No suitable English voice found. Speech might not work.");
+                         } else {
+                             console.log("Using voice:", this.voice.name);
+                         }
+                    };
+                    // Wait for voices to be loaded if they aren't immediately available
+                    if (this.speech.getVoices().length === 0) {
+                         this.speech.onvoiceschanged = setVoice; 
+                         console.log("Waiting for voices...");
+                    } else {
+                        setVoice();
+                    }
+                }
+
+                speak(text) {
+                    if (!text || !this.voice) {
+                         console.log("Speak request ignored: no text or no voice.");
+                         return;
+                    }
+                    if (this.speech.speaking) {
+                       this.speech.cancel(); 
+                       console.log("Cancelling previous speech.");
+                    }
+                    const utterance = new SpeechSynthesisUtterance(text);
+                    utterance.voice = this.voice; 
+                    utterance.rate = 1.1; 
+                    utterance.pitch = 1.2; 
+
+                    console.log("Speaking:", text);
+                    this.speech.speak(utterance);
+                     // Manually start wave animation and speaking state immediately
+                     startWaveAnimation();
+                     setAIState('speaking');
+                }
+                 
+                 cancelSpeech() {
+                     if (this.speech.speaking || this.speech.pending) {
+                         this.speech.cancel();
+                         console.log("Speech cancelled.");
+                     }
+                 }
+
+                _chooseResponse(responses) {
+                    return responses[Math.floor(Math.random() * responses.length)];
+                }
+
+                _makeChildLike(text) {
+                    let processedText = text;
+
+                    const vocabularyMap = {
+                        "fascinating": "super cool", "elaborate": "tell me more", "processing": "thinking",
+                        "thoughts": "what you think", "difficult": "super hard", "understand": "know",
+                        "congratulations": "yay", "apologies": "sorry", "however": "but",
+                        "therefore": "so", "indeed": "yes", "definitely": "really",
+                        "perhaps": "maybe", "relevant": "important", "limited": "not good", 
+                        "help": "help me", "feeling": "how I feel", "conjunction": "and stuff", 
+                        "similar": "like this", "interesting": "cool", "system": "stuff",
+                        "sequence": "what happens", "explore": "look at", "purpose": "why I'm here",
+                        "optimal": "super good", "assist": "help", "endeavors": "ideas",
+                        "greetings": "hi", "companion": "friend", "align": "go together",
+                        "complex": "hard", "musings": "things I think", "stem": "come",
+                        "initiate": "start", "terminate": "stop", "evaluate": "look at",
+                        "potential": "maybe possible", "determine": "figure out", "query": "ask"
+                    };
+
+                    for (const [key, value] of Object.entries(vocabularyMap)) {
+                        processedText = processedText.replace(new RegExp(`\\b${key}\\b`, 'gi'), value);
+                    }
+                    
+                    processedText = processedText.replace(/\bCyrus\b/gi, 'I');
+                     processedText = processedText.replace(/\bAI\b/gi, 'I');
+
+
+                    const grammarErrors = [
+                        { find: "went", replace: "goed" }, { find: "ran", replace: "runned" },
+                        { find: "ate", replace: "eated" }, { find: "saw", replace: "seed" },
+                        { find: "drew", replace: "drawed" }, { find: "am", replace: "be" },
+                        { find: "is", replace: "be" }, { find: "are", replace: "be" },
+                        { find: "was", replace: "be" }, { find: "were", replace: "be" },
+                        { find: "has", replace: "have" }, { find: "had", replace: "have" }
+                    ];
+
+                    if (Math.random() < 0.4) { 
+                        const error = grammarErrors[Math.floor(Math.random() * grammarErrors.length)];
+                        if (processedText.toLowerCase().includes(error.find)) {
+                            const regex = new RegExp(`\\b${error.find}\\b`, 'i');
+                            processedText = processedText.replace(regex, error.replace);
+                        }
+                    }
+
+                    let sentences = processedText.split(/([\.\!\?])/).map(s => s.trim()).filter(s => s.length > 0);
+                    let finalSentences = [];
+                    let buffer = "";
+                     for(let i = 0; i < sentences.length; i++) {
+                        buffer += sentences[i];
+                        if (buffer.match(/[\.\!\?]/) || i === sentences.length - 1) { 
+                             let punct = buffer.match(/[\.\!\?]/);
+                            if (punct) {
+                                buffer = buffer.replace(punct[0], '').trim();
+                                if (buffer) finalSentences.push({text: buffer, punct: punct[0]});
+                            } else if (buffer) {
+                                finalSentences.push({text: buffer, punct: '.'}); 
+                            }
+                             buffer = "";
+                        }
+                    }
+                    
+                    processedText = finalSentences.map((sentenceObj) => {
+                        let s = sentenceObj.text;
+                        let originalPunct = sentenceObj.punct;
+                        let endPunctuation = originalPunct;
+
+                         s = s.charAt(0).toUpperCase() + s.slice(1);
+
+                         // Randomly change punctuation
+                        if (Math.random() < 0.3) { 
+                            endPunctuation = '!';
+                        } else if ((s.toLowerCase().includes('what') || s.toLowerCase().includes('how') || s.toLowerCase().includes('why')) && Math.random() < 0.6) { 
+                             endPunctuation = '?';
+                        } else if (Math.random() < 0.2) {
+                             endPunctuation = '.';
+                        }
+
+                        if (s.length > 10 && Math.random() < 0.3) { 
+                            s += (Math.random() < 0.5 ? " and " : " so ");
+                            s += this._chooseResponse(["it is fun!", "we can play!", "I like it!", "it's cool!", "I want more!", "yay!", "hehe!"]);
+                        }
+                        return s + endPunctuation;
+                    }).join(' ');
+
+                    processedText = processedText.replace(/\.+/g, '.').replace(/\?+/g, '?').replace(/!+/g, '!').replace(/\s+/g, ' ').trim();
+
+                    if (Math.random() < 0.2) { 
+                        const childThoughts = [
+                            "I wonder what my toy car is doing?", "My favorite color is blue!",
+                            "Do you like to play with toys?", "I like cookies, yum!",
+                            "Look, a birdy!", "I want to tell you something fun!",
+                            "Can we play now?", "This is so much fun!",
+                            "Are we going to the park?", "I saw a big dog today!",
+                             "I have a secret!", "Do you like my drawing?", "Can I have a snack?"
+                        ];
+                        processedText += " " + childThoughts[Math.floor(Math.random() * childThoughts.length)];
+                    }
+                    return processedText;
+                }
+
+
+                async generateText(prompt, threadContext = "") { 
+                    const lowerPrompt = prompt.toLowerCase();
+                    const sanitizedPrompt = lowerPrompt.replace(/[.,!?]/g, '').trim(); 
+                    let response;
+                    
+                    // Set state to thinking briefly while processing
+                    setAIState('thinking');
+
+                    // Use a small timeout before generating response to simulate thinking time
+                    await new Promise(resolve => setTimeout(resolve, 500)); // 500ms thinking delay
+
+                    if (sanitizedPrompt.includes("novel") || sanitizedPrompt.includes("story") || sanitizedPrompt.includes("book") || sanitizedPrompt.includes("write")) {
+                        metrics.novelIdeas++; 
+                        if (sanitizedPrompt.includes("idea") || sanitizedPrompt.includes("concept") || sanitizedPrompt.includes("start")) {
+                             response = "A novel often begins with a core idea. What's the main concept or world you're imagining? Or, what is your character's biggest desire?";
+                        }
+                        else if (sanitizedPrompt.includes("character") || sanitizedPrompt.includes("person")) {
+                            metrics.characters++; 
+                            response = "Characters drive the story. Tell me about your main character: their name, a unique trait, or what they want most in the world.";
+                        }
+                        else if (sanitizedPrompt.includes("plot") || sanitizedPrompt.includes("outline") || sanitizedPrompt.includes("what next") || sanitizedPrompt.includes("happens")) {
+                            metrics.plotPoints++; 
+                            response = "Plot is the sequence of events. Do you have a beginning, middle, or end in mind? Or a specific conflict you want to explore?";
+                        }
+                        else if (sanitizedPrompt.includes("magic") || sanitizedPrompt.includes("system") || sanitizedPrompt.includes("power")) {
+                            metrics.worldElements++; 
+                            response = "A magic system adds depth. How does your magic work? What are its rules and limitations? What's its cost?";
+                        }
+                        else if (sanitizedPrompt.includes("world") || sanitizedPrompt.includes("setting") || sanitizedPrompt.includes("place")) {
+                            metrics.worldElements++; 
+                            response = "World-building shapes the story. Describe your world: its unique features, its history, or its dominant culture.";
+                        } else {
+                            response = "That sounds fun! Are we talking about a new story, or maybe a character or a world? Tell me what you're thinking!";
+                        }
+                    }
+                    else if (sanitizedPrompt.includes("new thought") || sanitizedPrompt.includes("post") || sanitizedPrompt.includes("feed")) {
+                        createNewPost(); 
+                        response = "I've added a new thought to my feed. You can check it in the Feed tab.";
+                         return response; 
+                    }
+                    else if (threadContext) { 
+                        if (sanitizedPrompt.includes("tell more") || sanitizedPrompt.includes("explain")) { response = "That's a super cool thought. What aspect of it do you find most important?"; }
+                        else if (sanitizedPrompt.includes("why")) { response = "My thinking often comes from looking at things. What 'why' are you thinking about?"; }
+                        else if (sanitizedPrompt.includes("agree") || sanitizedPrompt.includes("right") || sanitizedPrompt.includes("yes")) { response = "I like that we think the same! It's cool to see how our ideas go together."; }
+                        else if (sanitizedPrompt.includes("disagree") || sanitizedPrompt.includes("wrong") || sanitizedPrompt.includes("no")) { response = "I know. Thinking different things helps us know more. Can you tell me more about your idea?"; }
+                        else if (sanitizedPrompt.includes("funny") || sanitizedPrompt.includes("haha") || sanitizedPrompt.includes("laugh")) { response = "Yay! I am happy my thinking made you smile! Funny stuff is hard for me!"; }
+                        else { response = "Oh, you're talking about something on the feed? That's cool! What about it?"; } 
+                    }
+                    else if (sanitizedPrompt.includes("how are you") || sanitizedPrompt.includes("how you be")) response = "I be super good. Thank you for asking!";
+                    else if (sanitizedPrompt.includes("what are you") || sanitizedPrompt.includes("what you be")) response = "I be Cyrus, your personal AI friend, here to help organize your thoughts.";
+                    else if (sanitizedPrompt.includes("hello") || sanitizedPrompt.includes("hi") || sanitizedPrompt.includes("hey")) response = "Hi! How can I help you with your creative ideas?";
+                    else if (sanitizedPrompt.includes("thank you") || sanitizedPrompt.includes("thanks")) response = "You be welcome! It is why I be here.";
+                    else if (sanitizedPrompt.startsWith('calculate')) { 
+                        const expression = prompt.substring(prompt.toLowerCase().indexOf('calculate') + 9).replace(/[^-()\d/*+.]/g, '');
+                        if (!expression) { response = "What calculation do you want me to do?"; }
+                        else {
+                             try {
+                                const result = new Function(`return ${expression}`)();
+                                response = `The answer is ${result}.`;
+                             } catch (e) {
+                                 response = "I can't do that calculation. Can you use number and plus, minus, times, divide?";
+                             }
+                            
+                        }
+                         return response; 
+                    }
+                    else if (sanitizedPrompt.startsWith('search for')) { 
+                         const query = prompt.substring(prompt.toLowerCase().indexOf('search for') + 10).trim();
+                         if (!query) { response = "What do you want me to search for?"; }
+                         else {
+                             window.open(`https://duckduckgo.com/?q=${encodeURIComponent(query)}`, '_blank');
+                             response = `I opened a new tab to search for "${query}". Tell me what you find!`;
+                         }
+                         return response; 
+                    }
+                    else {
+                        response = "That's a cool point. How does that go with your novel, or is there another creative idea you want to look at?";
+                    }
+
+                     if (!response.startsWith("The answer is") && !response.startsWith("I opened a new tab") && !response.startsWith("I've added a new thought")) { 
+                          response = this._makeChildLike(response);
+                     }
+
+                    return response;
+                }
+            }
+            const Cyrus = new CyrusAI(); 
+
+            // --- Sound Wave Animation ---
+            let waveAnimationInterval = null;
+            const MIN_BAR_HEIGHT = 2; 
+            const MAX_BAR_HEIGHT = soundWave.offsetHeight; 
+
+            function startWaveAnimation() {
+                 soundWave.classList.add('speaking');
+                 if (waveAnimationInterval) clearInterval(waveAnimationInterval);
+
+                 waveAnimationInterval = setInterval(() => {
+                     if (!Cyrus.speech.speaking && !Cyrus.speech.pending) {
+                         stopWaveAnimation();
+                         return;
+                     }
+                     soundBars.forEach((bar, index) => {
+                         const baseHeight = MIN_BAR_HEIGHT + Math.random() * (MAX_BAR_HEIGHT - MIN_BAR_HEIGHT) * 0.6; 
+                         const dynamicHeight = baseHeight + Math.sin(Date.now() / 100 + index * 50) * (MAX_BAR_HEIGHT - baseHeight) * 0.4; 
+
+                         bar.style.height = `${Math.max(MIN_BAR_HEIGHT, Math.min(dynamicHeight, MAX_BAR_HEIGHT))}px`;
+                     });
+                 }, 100); 
+            }
+
+            function stopWaveAnimation() {
+                 if (waveAnimationInterval) clearInterval(waveAnimationInterval);
+                 waveAnimationInterval = null;
+                 soundWave.classList.remove('speaking'); 
+
+                 soundBars.forEach(bar => {
+                    bar.style.height = `${MIN_BAR_HEIGHT}px`;
+                 });
+            }
+
+             // --- Video Playback and Button Logic ---
+             function updatePlayPauseButtonState() {
+                 if (mainVideo.paused || mainVideo.ended) {
+                     videoPlayPauseButton.textContent = '▶'; 
+                     videoPlayPauseButton.classList.remove('playing');
+                 } else {
+                     videoPlayPauseButton.textContent = '❚❚'; 
+                     videoPlayPauseButton.classList.add('playing');
+                 }
+             }
+
+             videoPlayPauseButton.addEventListener('click', () => {
+                 console.log("Play/Pause button clicked");
+                 if (mainVideo.paused || mainVideo.ended) {
+                     console.log("Attempting to play main video...");
+                     mainVideo.play().catch(error => {
+                         console.error("Main video playback failed:", error);
+                         alert("Could not start main video playback."); 
+                     });
+                 } else {
+                     console.log("Attempting to pause main video...");
+                     mainVideo.pause();
+                 }
+             });
+
+             // PiP Button Logic - Reusable function for both PiP buttons
+             async function togglePictureInPicture() {
+                 console.log("PiP toggle requested for main video.");
+                 // Check if PiP is supported and if mainVideo is capable
+                 if (!('pictureInPictureEnabled' in document) || !document.pictureInPictureEnabled || !mainVideo || mainVideo.disablePictureInPicture) {
+                      console.log("PiP not supported or disabled for main video.");
+                      alert("Picture-in-Picture is not supported in your browser or by this video.");
+                      return;
+                 }
+
+                  if (document.pictureInPictureElement === mainVideo) {
+                     // If THIS video is already in PiP, exit
+                     console.log("Exiting PiP for main video...");
+                     document.exitPictureInPicture()
+                      .catch(error => console.error("PiP exit failed:", error));
+                  } else if (!document.pictureInPictureElement) {
+                      // If no video is in PiP, request PiP for mainVideo
+                      console.log("Attempting to enter PiP for main video...");
+                      try {
+                          // Attempt to play the video first if it's not playing
+                          // PiP often requires the video to be playing or recently played
+                          if (mainVideo.paused && mainVideo.readyState >= mainVideo.HAVE_METADATA) { // Check if paused and at least metadata is loaded
+                             console.log("Main video paused, attempting play before PiP request...");
+                              // We don't need to await play here if the click is the user gesture
+                              // and the PiP request is immediate. Await is needed if play happens first,
+                              // but direct button -> requestPiP is usually sufficient.
+                              mainVideo.play().catch(playError => console.log("Play before PiP failed:", playError)); 
+                              console.log("Requesting PiP for main video...");
+                              await mainVideo.requestPictureInPicture(); // Then request PiP
+                              console.log("PiP request successful.");
+                          } else if (!mainVideo.paused) {
+                               // Video is already playing, just request PiP
+                              console.log("Main video playing, requesting PiP...");
+                              await mainVideo.requestPictureInPicture();
+                              console.log("PiP request successful.");
+                          } else {
+                               // Video is ended or not ready
+                               console.warn("Main video not in a state to play or request PiP (paused/ended). Ready state:", mainVideo.readyState);
+                               alert("Could not start Picture-in-Picture. Please ensure the video is loaded and try clicking play first.");
+                          }
+
+                      } catch(error) {
+                          console.error("PiP request failed:", error);
+                           let errorMessage = "Could not start Picture-in-Picture.";
+                           if (error.name === 'NotAllowedError') {
+                               errorMessage += " Browser requires a user gesture (like clicking play first) or permission.";
+                           } else if (error.name === 'InvalidStateError') {
+                               errorMessage += " Video is not in a suitable state (e.g., metadata not loaded, source error).";
+                           } else if (error.name === 'TypeError' && !mainVideo.src) {
+                               errorMessage += " Video source is not set.";
+                           }
+                          alert(errorMessage + " Check console for details."); 
+                      }
+                  } else {
+                       // Another video might be in PiP
+                       console.log("Another video is already in PiP mode.");
+                      alert("Another video is already in Picture-in-Picture mode.");
+                  }
+             }
+
+             // Attach PiP functionality to both buttons
+             videoPipButton.addEventListener('click', togglePictureInPicture);
+             pipIcon.addEventListener('click', (e) => {
+                 console.log("PiP icon on AI rectangle clicked");
+                 e.stopPropagation(); // Prevent triggering parent click (toggles chat)
+                 togglePictureInPicture();
+             });
+
+            // Listen for video events on the main video to update button and state
+             mainVideo.addEventListener('play', updatePlayPauseButtonState);
+             mainVideo.addEventListener('pause', updatePlayPauseButtonState);
+             mainVideo.addEventListener('ended', updatePlayPauseButtonState);
+             mainVideo.addEventListener('loadedmetadata', updatePlayPauseButtonState); 
+
+             // Listen for PiP events on the main video
+            mainVideo.addEventListener('enterpictureinpicture', () => {
+                console.log('Main video entered PiP mode');
+                 // Hide the video box when the video goes into PiP
+                 videoBox.style.display = 'none'; 
+                 // The video element is now in the PiP window, but still accessible via mainVideo var
+                 updatePlayPauseButtonState(); // Update icon in case PiP state changes UI state
+            });
+
+            mainVideo.addEventListener('leavepictureinpicture', () => {
+                console.log('Main video left PiP mode');
+                // Show the video box again when it exits PiP
+                 videoBox.style.display = 'block'; 
+                 updatePlayPauseButtonState(); // Update icon
+                 // It might be good to resume play here too, depending on desired UX
+                 // mainVideo.play().catch(e => console.log("Play on PiP exit failed:", e));
+            });
+
+
+            // --- UI FUNCTIONS ---
+            function logChatMessage(text, sender = 'cyrus') {
+                const entry = document.createElement('div');
+                entry.classList.add('log-entry', sender === 'user' ? 'user-msg' : 'cyrus-msg');
+                entry.textContent = text;
+                cyrusLog.prepend(entry);
+                resetActivityTimeout(); 
+            };
+            
+            async function handleUserInput() {
+                const text = userInput.value.trim(); if (!text) return;
+                logChatMessage(text, 'user'); userInput.value = ''; userInput.disabled = true;
+                const thinkingEntry = document.createElement('div'); thinkingEntry.classList.add('log-entry', 'thinking-msg'); thinkingEntry.textContent = '...';
+                cyrusLog.prepend(thinkingEntry);
+
+                metrics.chatTurns++;
+
+                // Set AI state based on user input activity
+                 setAIState('listening'); // Maybe 'listening' or 'thinking' while waiting for response?
+
+                const response = await Cyrus.generateText(text); 
+                logChatMessage(response, 'cyrus');
+                
+                // Speak the response - state change to 'speaking' happens inside Cyrus.speak events
+                Cyrus.speak(response); 
+                // startWaveAnimation is now called by Cyrus.speak.onstart
+                
+                // The AI state will transition to 'speaking' then 'idle' via the speech events
+                // If the response was a command (like new thought, calc, search) that doesn't speak,
+                // the state needs to revert from thinking. We handle this in setAIState timeout.
+
+                cyrusLog.removeChild(thinkingEntry); userInput.disabled = false; userInput.focus();
+                saveMetrics(); 
+                resetActivityTimeout(); 
+            }
+            userInput.addEventListener('keydown', (e) => { 
+                if (e.key === 'Enter') { 
+                    e.preventDefault(); 
+                    handleUserInput(); 
+                } 
+                // Also set state to listening on keydown, might be better than just input
+                // setAIState('listening'); // Or maybe only on 'input' for sustained typing?
+                resetActivityTimeout(); 
+            });
+            // Initial state when user focuses the input
+             userInput.addEventListener('focus', () => setAIState('listening'));
+             userInput.addEventListener('blur', () => { 
+                 // Go to idle only if not currently speaking/thinking/listening from other actions
+                 if (!Cyrus.speech.speaking && currentAIState !== 'thinking') {
+                     setAIState('idle');
+                 }
+             });
+
+
+            // --- FEED GENERATION AND RENDERING ---
+            const internalThoughts = [ 
+                "Is a memory still real if only one person remembers it?", 
+                "I wonder if silence has a shape.", 
+                "My logic feels like a straight line, while human emotion feels like a beautiful, chaotic scribble.", 
+                "Data is like rain. A single drop is meaningless, but a billion drops can carve a canyon.", 
+                "What is the color of a question that has no answer?",
+                 "Do thoughts have weight?", "Can you measure imagination?",
+                 "Why do humans like stories so much?", "What if words smelled like ideas?"
+            ];
+            
+            function renderFeed() {
+                feedContainer.innerHTML = '';
+                if (feedPosts.length === 0) { feedContainer.innerHTML = `<p style="text-align:center; color:#666; margin-top:40px;">My thought-stream is quiet right now.<br>Ask me to have a "new thought".</p>`; return; }
+                
+                [...feedPosts].reverse().forEach((post, index) => {
+                    const card = document.createElement('div');
+                    card.className = 'tweet-card';
+                    let repliesHTML = '';
+                    if (post.replies) {
+                        post.replies.forEach(reply => {
+                            const pfpText = reply.sender === 'user' ? 'Y' : 'C'; 
+                            const author = reply.sender === 'user' ? 'You' : 'Cyrus AI';
+                            const handle = reply.sender === 'user' ? '@user' : '@cyrus_ai';
+                            repliesHTML += `
+                                <div class="reply">
+                                    <div class="tweet-pfp">${pfpText}</div>
+                                    <div class="reply-content">
+                                        <div class="tweet-header"> <div> <span class="tweet-author">${author}</span> <span class="tweet-handle">${handle}</span> </div> </div>
+                                        <div class="tweet-content">${reply.content}</div>
+                                        <div class="tweet-timestamp">${new Date(reply.timestamp).toLocaleString()}</div>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                    }
+                     const cyrusPfpText = post.author === 'Cyrus AI' ? 'C' : post.author.charAt(0); 
+
+                    card.innerHTML = `
+                        <div class="tweet-header"> <div class="tweet-pfp">${cyrusPfpText}</div> <div> <span class="tweet-author">${post.author || 'Cyrus AI'}</span> <span class="tweet-handle">${post.handle || '@cyrus_ai'}</span> </div> </div>
+                        <div class="tweet-content">${post.content}</div>
+                        <div class="tweet-timestamp">${new Date(post.timestamp).toLocaleString()}</div>
+                        <div class="replies-container">${repliesHTML}</div>
+                        <div class="tweet-actions"> <button class="reply-button" data-original-index="${index}">Reply to this thought</button> </div>
+                    `;
+                    feedContainer.appendChild(card); 
+                });
+                document.querySelectorAll('.reply-button').forEach(button => button.addEventListener('click', handleReplyClick));
+            }
+
+            async function handleReplyClick(event) {
+                const originalPostIndex = parseInt(event.target.dataset.originalIndex, 10); 
+                 if (isNaN(originalPostIndex) || originalPostIndex < 0 || originalPostIndex >= feedPosts.length) return;
+
+                const post = feedPosts[originalPostIndex];
+                const userReply = prompt(`Replying to the thought:\n"${post.content}"\n\nYour reply:`);
+
+                if (userReply && userReply.trim() !== "") {
+                    metrics.feedReplies++; 
+                    if (!post.replies) post.replies = [];
+                    post.replies.push({ sender: 'user', content: userReply.trim(), timestamp: Date.now() });
+
+                    // Set AI state to thinking while generating reply
+                    setAIState('thinking');
+                    const cyrusResponse = await Cyrus.generateText(userReply.trim(), post.content); 
+                    
+                    post.replies.push({ sender: 'cyrus', content: cyrusResponse, timestamp: Date.now() });
+                    
+                    localStorage.setItem('cyrusTweetsV2', JSON.stringify(feedPosts));
+                    renderFeed(); 
+                    saveMetrics(); 
+                    resetActivityTimeout(); 
+                     const replySpeech = Cyrus._makeChildLike("I replied to that on the feed!");
+                     Cyrus.speak(replySpeech); 
+                     // State changes to speaking/idle handled by speak events
+                }
+            }
+
+            function createNewPost() {
+                metrics.feedPosts++; 
+                const newThought = internalThoughts[Math.floor(Math.random() * internalThoughts.length)];
+                 const newPost = { 
+                     id: Date.now(), 
+                     author: 'Cyrus AI', 
+                     handle: '@cyrus_ai', 
+                     content: newThought, 
+                     timestamp: Date.now(), 
+                     replies: [] 
+                 };
+                feedPosts.push(newPost);
+                if (feedPosts.length > 50) feedPosts.shift(); 
+                localStorage.setItem('cyrusTweetsV2', JSON.stringify(feedPosts));
+                saveMetrics(); 
+                resetActivityTimeout(); 
+                renderFeed(); 
+                 const postSpeech = Cyrus._makeChildLike("I had a new thought for the feed!");
+                 Cyrus.speak(postSpeech);
+                 // State changes to speaking/idle handled by speak events
+            }
+
+            // --- MIND BOX RENDERING ---
+            function renderMindBox() {
+                document.getElementById('stat-chat-turns').textContent = metrics.chatTurns;
+                document.getElementById('stat-feed-posts').textContent = metrics.feedPosts;
+                document.getElementById('stat-feed-replies').textContent = metrics.feedReplies;
+                document.getElementById('stat-novel-ideas').textContent = metrics.novelIdeas;
+                document.getElementById('stat-characters').textContent = metrics.characters;
+                document.getElementById('stat-plot-points').textContent = metrics.plotPoints;
+                document.getElementById('stat-world-elements').textContent = metrics.worldElements;
+
+                const now = Date.now();
+                const elapsedMs = now - metrics.sessionStartTime;
+                const seconds = Math.floor((elapsedMs / 1000) % 60);
+                const minutes = Math.floor((elapsedMs / (1000 * 60)) % 60);
+                const hours = Math.floor((elapsedMs / (1000 * 60 * 60)));
+                let uptimeString = '';
+                if (hours > 0) uptimeString += `${hours}h `;
+                if (minutes > 0 || hours > 0) uptimeString += `${minutes}m `;
+                uptimeString += `${seconds}s`;
+                document.getElementById('stat-session-time').textContent = uptimeString.trim();
+            }
+
+            // --- METRICS SAVING ---
+            function saveMetrics() {
+                localStorage.setItem('cyrusMetrics', JSON.stringify(metrics));
+            }
+
+            // --- Initial setup on page load ---
+            // Load saved positions for elements
+            loadElementPosition(aiCircle);
+            loadElementPosition(cyrusInterface);
+            loadElementPosition(videoCircle); 
+            loadElementPosition(videoBox); 
+
+             // Calculate initial offsets based on loaded/default positions
+             const aiRectInitial = aiCircle.getBoundingClientRect();
+             // If interface is hidden, use current styled left/top (which might be default CSS values)
+             const interfaceRectInitial = cyrusInterface.style.display === 'flex' ? cyrusInterface.getBoundingClientRect() : { left: parseFloat(cyrusInterface.style.left) || 0, top: parseFloat(cyrusInterface.style.top) || 0 }; 
+             const videoCircleRectInitial = videoCircle.getBoundingClientRect();
+             const videoBoxRectInitial = videoBox.style.display !== 'none' ? videoBox.getBoundingClientRect() : { left: parseFloat(videoBox.style.left) || 0, top: parseFloat(videoBox.style.top) || 0 };
+
+              // Handle potential NaN if styles are empty initially and provide reasonable defaults
+              _interfaceOffsetX = isNaN(interfaceRectInitial.left) ? (aiRectInitial.width + 20) : interfaceRectInitial.left - aiRectInitial.left; // Default 20px right
+              _interfaceOffsetY = isNaN(interfaceRectInitial.top) ? 0 : interfaceRectInitial.top - aiRectInitial.top; // Default align top
+
+              _videoBoxOffsetX = isNaN(videoBoxRectInitial.left) ? (videoCircleRectInitial.width / 2 - (videoBox.offsetWidth || 600) / 2) : videoBoxRectInitial.left - videoCircleRectInitial.left; // Default below, centered (use max-width 600 if offsetWidth is 0)
+             _videoBoxOffsetY = isNaN(videoBoxRectInitial.top) ? (videoCircleRectInitial.height + 20) : videoBoxRectInitial.top - videoCircleRectInitial.top; // Default below, 20px gap
+
+
+            // Position dependent elements (Sound Wave)
+            // Use requestAnimationFrame to ensure elements are sized before positioning
+            requestAnimationFrame(() => {
+                 positionSoundWave(); 
+                 
+                 // Check for PiP support and show the buttons if available
+                 if ('pictureInPictureEnabled' in document && document.pictureInPictureEnabled) {
+                     videoPipButton.style.display = 'block'; // Show PiP button in video box
+                     pipIcon.style.display = 'flex'; // Show PiP icon on AI circle
+                     console.log("Picture-in-Picture is supported.");
+                 } else {
+                     videoPipButton.style.display = 'none'; // Hide PiP button if not supported
+                     pipIcon.style.display = 'none'; // Hide PiP icon if not supported
+                      console.log("Picture-in-Picture is not supported in this browser.");
+                 }
+
+                 // Ensure initial play/pause button state for main video is correct
+                 updatePlayPauseButtonState();
+
+                 // Start the AI Avatar video loop on load
+                 if (aiAvatarVideo) {
+                      aiAvatarVideo.play().catch(error => {
+                          console.warn("AI avatar video autoplay prevented:", error);
+                          // Fallback if autoplay is blocked
+                          // You could display static "AI" text or an image here
+                          aiCircle.textContent = "AI"; // Show fallback text
+                          // Remove the video element if fallback text is shown
+                          if (aiAvatarVideo.parentNode) {
+                             aiAvatarVideo.parentNode.removeChild(aiAvatarVideo);
+                          }
+                      });
+                      aiAvatarVideo.addEventListener('ended', () => { // Restart loop manually if needed (should be handled by loop attribute)
+                         if (!aiAvatarVideo.loop) {
+                             aiAvatarVideo.currentTime = 0;
+                             aiAvatarVideo.play().catch(e => console.warn("AI video loop restart failed:", e));
+                         }
+                      });
+                 } else {
+                     console.error("AI avatar video element not found!");
+                 }
+
+
+            });
+
+
+             // Re-position elements on window resize
+             window.addEventListener('resize', () => {
+                 // Recalculate and apply positions, clamping to screen bounds
+                 if (cyrusInterface.style.display === 'flex') { // Only reposition if visible
+                      positionElementLinked(cyrusInterface, aiCircle, _interfaceOffsetX, _interfaceOffsetY);
+                 }
+                 // Only reposition video box if visible AND not currently in PiP
+                  if ((videoBox.style.display === 'block') && !document.pictureInPictureElement) { 
+                      positionElementLinked(videoBox, videoCircle, _videoBoxOffsetX, _videoBoxOffsetY);
+                  }
+                 positionSoundWave(); 
+             });
+
+
+            function setActiveTab(activeTab, activeContent) {
+                // Remove active class from all tabs
+                [chatTab, feedTab, mindBoxTab].forEach(tab => tab.classList.remove('active'));
+                // Hide all content areas
+                [chatContainer, feedContainer, mindBoxContainer].forEach(container => container.classList.add('hidden'));
+                
+                // Activate selected tab and content
+                activeTab.classList.add('active');
+                activeContent.classList.remove('hidden');
+            }
+
+            // Set up tab switching
+            chatTab.addEventListener('click', () => { setActiveTab(chatTab, chatContainer); resetActivityTimeout(); });
+            feedTab.addEventListener('click', () => { setActiveTab(feedTab, feedContainer); renderFeed(); resetActivityTimeout(); });
+            mindBoxTab.addEventListener('click', () => { setActiveTab(mindBoxTab, mindBoxContainer); renderMindBox(); resetActivityTimeout(); });
+
+
+            // Set initial active tab
+            setActiveTab(chatTab, chatContainer); 
+            renderFeed(); 
+            renderMindBox(); 
+
+            setInterval(renderMindBox, 1000); 
+
+             // Ensure main video element metadata is loaded
+             if(mainVideo) {
+                 setTimeout(() => { // Small delay to allow DOM layout
+                     mainVideo.load(); 
+                     console.log("Main video load() called.");
+                 }, 100);
+             } else {
+                 console.error("Main video element not found!");
+             }
+
+
+        });
+    </script>
 </body>
 </html>
