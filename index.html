@@ -42,18 +42,27 @@
          }
 
         #ai-circle {
-            /* New custom size */
+            /* Custom size for the AI circle (now rectangular) */
             width: 200px;
             height: 112px;
             font-size: 24px; /* Adjust font size proportionally */
-            border-radius: 10px; /* Optional: make it slightly rounded instead of circle */
+            border-radius: 10px; /* Slightly rounded */
             background-color: #000; /* Keep it black */
             box-shadow: 0 6px 20px rgba(0, 170, 255, 0.6);
             left: 50px; 
             top: 50px; 
+            overflow: hidden; /* Keep video within bounds */
         }
         #ai-circle:hover {
             box-shadow: 0 8px 25px rgba(0, 170, 255, 0.8);
+        }
+
+        /* Video styling for AI button (the video inside the circle) */
+        #ai-video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 10px; /* Optional: match container rounding */
         }
 
         /* --- Video Circle --- */
@@ -152,11 +161,10 @@
             overflow: hidden; 
             cursor: grab; 
             touch-action: none; 
-            /* Ensures position is fixed for dragging */
         }
-         #video-box.dragging {
-             cursor: grabbing;
-         }
+        #video-box.dragging {
+            cursor: grabbing;
+        }
 
         #main-video {
             display: block; 
@@ -183,18 +191,12 @@
             cursor: pointer;
             border: 2px solid rgba(255, 255, 255, 0.8);
             transition: opacity 0.3s ease-in-out;
-             user-select: none;
+            user-select: none;
         }
-         #video-play-pause-button:hover {
-             background-color: rgba(0, 0, 0, 0.8);
-         }
-
-        #video-play-pause-button.playing {
-            opacity: 0; 
-            pointer-events: none; 
+        #video-play-pause-button:hover {
+            background-color: rgba(0, 0, 0, 0.8);
         }
 
-        /* --- PiP Button --- */
         #video-pip-button {
             position: absolute;
             top: 10px; /* 10px from top */
@@ -208,20 +210,19 @@
             cursor: pointer;
             border: 1px solid rgba(255, 255, 255, 0.5);
             transition: background-color 0.2s ease-in-out;
-             user-select: none;
-             display: none; /* Hidden by default, shown by JS if supported */
+            user-select: none;
+            display: none; /* Hidden by default, shown by JS if supported */
         }
-         #video-pip-button:hover {
-             background-color: rgba(0, 0, 0, 0.8);
-         }
-         /* Style for the PiP icon - a small square with an arrow */
-         #video-pip-button::before {
-             content: '❐'; /* Unicode for a square/window shape */
-             margin-right: 4px;
-             font-size: 1.2em;
-             line-height: 1;
-             vertical-align: middle;
-         }
+        #video-pip-button:hover {
+            background-color: rgba(0, 0, 0, 0.8);
+        }
+        #video-pip-button::before {
+            content: '❐'; /* Unicode for a square/window shape */
+            margin-right: 4px;
+            font-size: 1.2em;
+            line-height: 1;
+            vertical-align: middle;
+        }
 
         .hidden { display: none !important; }
 
@@ -438,7 +439,10 @@
 <body>
     <!-- Floating Buttons -->
     <div id="ai-circle" class="floating-circle">
-        AI
+        <!-- Replaced image/icon with a video element -->
+        <video id="ai-video" autoplay loop muted playsinline>
+            <source src="https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4" type="video/mp4" />
+        </video>
         <div id="pip-icon" class="pip-icon">🎥</div>
     </div>
     <div id="video-circle" class="floating-circle">Vid</div>
@@ -511,6 +515,7 @@
             const cyrusInterface = document.getElementById('cyrus-interface');
             const videoBox = document.getElementById('video-box'); 
             const mainVideo = document.getElementById('main-video'); 
+            const aiVideo = document.getElementById('ai-video'); // Our new video element inside AI circle
             const videoPlayPauseButton = document.getElementById('video-play-pause-button'); 
             const videoPipButton = document.getElementById('video-pip-button');
             const pipIcon = document.getElementById('pip-icon'); // New PiP icon
@@ -598,8 +603,6 @@
 
 
             function startDrag(e, element) {
-                 // Prevent dragging if the touch/mouse originated on specific interactive elements
-                 // Check for closest parent that IS the element being dragged before preventing
                  if (element === aiCircle && 
                      (e.target.closest('#sound-wave') || e.target === pipIcon) && 
                      !e.target.closest('#ai-circle')) {
@@ -608,11 +611,9 @@
                  if (element === cyrusInterface && e.target.closest('#nav-tabs, #input-area') && !e.target.closest('#cyrus-interface')) {
                      return; 
                  }
-                  // Check if the target is the play/pause button OR the pip button
                  if (element === videoBox && (e.target.closest('#video-play-pause-button') || e.target.closest('#video-pip-button')) && !e.target.closest('#video-box')) {
                      return; 
                  }
-
 
                 _isDragging = true;
                 _draggedElement = element;
@@ -627,7 +628,6 @@
                 _initialMouseX = clientX;
                 _initialMouseY = clientY;
 
-                // Calculate initial offsets for linked elements
                 const aiCoords = getElementCoords(aiCircle);
                 const interfaceRect = getElementCoords(cyrusInterface);
                 const videoCircleCoords = getElementCoords(videoCircle);
@@ -637,10 +637,10 @@
                      _interfaceOffsetX = interfaceRect.x - aiCoords.x;
                      _interfaceOffsetY = interfaceRect.y - aiCoords.y;
                 }
-                 if (element === videoCircle || element === videoBox) {
+                if (element === videoCircle || element === videoBox) {
                      _videoBoxOffsetX = videoBoxCoords.x - videoCircleCoords.x;
                      _videoBoxOffsetY = videoBoxCoords.y - videoCircleCoords.y;
-                 }
+                }
 
                 document.body.style.userSelect = 'none';
                 document.body.style.cursor = 'grabbing';
@@ -655,7 +655,6 @@
                 let newX = _initialElementX + (clientX - _initialMouseX);
                 let newY = _initialElementY + (clientY - _initialMouseY);
 
-                // Boundary checks for dragged element
                 newX = Math.max(0, Math.min(newX, window.innerWidth - _draggedElement.offsetWidth));
                 newY = Math.max(0, Math.min(newY, window.innerHeight - _draggedElement.offsetHeight));
 
@@ -664,7 +663,6 @@
 
                 saveElementPosition(_draggedElement, newX, newY); 
 
-                // Move linked elements
                 if (_draggedElement === aiCircle) {
                     positionElementLinked(cyrusInterface, aiCircle, _interfaceOffsetX, _interfaceOffsetY);
                     positionSoundWave(); 
@@ -695,11 +693,10 @@
             aiCircle.addEventListener('touchstart', (e) => startDrag(e, aiCircle));
             cyrusInterface.addEventListener('mousedown', (e) => startDrag(e, cyrusInterface));
             cyrusInterface.addEventListener('touchstart', (e) => startDrag(e, cyrusInterface));
-             videoCircle.addEventListener('mousedown', (e) => startDrag(e, videoCircle)); 
-             videoCircle.addEventListener('touchstart', (e) => startDrag(e, videoCircle)); 
-             videoBox.addEventListener('mousedown', (e) => startDrag(e, videoBox)); 
-             videoBox.addEventListener('touchstart', (e) => startDrag(e, videoBox)); 
-
+            videoCircle.addEventListener('mousedown', (e) => startDrag(e, videoCircle)); 
+            videoCircle.addEventListener('touchstart', (e) => startDrag(e, videoCircle)); 
+            videoBox.addEventListener('mousedown', (e) => startDrag(e, videoBox)); 
+            videoBox.addEventListener('touchstart', (e) => startDrag(e, videoBox)); 
 
             document.addEventListener('mousemove', doDrag);
             document.addEventListener('touchmove', doDrag, { passive: false }); 
@@ -709,7 +706,6 @@
 
             // --- AI CIRCLE CLICK / INTERFACE TOGGLE ---
             aiCircle.addEventListener('click', (e) => {
-                 // Prevent triggering if the click was on the pip icon
                  if (e.target === pipIcon) return;
                  if (_isDragging) return; 
 
@@ -722,9 +718,7 @@
                     cyrusInterface.style.display = 'flex';
                     userInput.focus();
 
-                    // Position next to AI circle (prefer right, fallback to left)
                     const aiRect = aiCircle.getBoundingClientRect();
-                    
                     let desiredInterfaceLeft = aiRect.right + 20; 
 
                     if (desiredInterfaceLeft + cyrusInterface.offsetWidth > window.innerWidth) {
@@ -742,15 +736,13 @@
                     if (finalTop < 0) { 
                         finalTop = 10;
                     }
-                     finalTop = Math.min(finalTop, aiRect.top + aiRect.height / 2);
-
+                    finalTop = Math.min(finalTop, aiRect.top + aiRect.height / 2);
 
                     cyrusInterface.style.left = `${desiredInterfaceLeft}px`;
                     cyrusInterface.style.top = `${finalTop}px`;
                     saveElementPosition(cyrusInterface, desiredInterfaceLeft, finalTop);
                     saveElementPosition(aiCircle, aiRect.left, aiRect.top); 
                     positionSoundWave(); 
-
 
                     _interfaceOffsetX = desiredInterfaceLeft - aiRect.left;
                     _interfaceOffsetY = finalTop - aiRect.top;
@@ -771,35 +763,31 @@
                         const spokenGreeting = Cyrus._makeChildLike(standardGreeting);
                         logChatMessage(spokenGreeting, 'cyrus');
                         Cyrus.speak(spokenGreeting); 
-                         startWaveAnimation(); 
+                        startWaveAnimation(); 
                     }
                     resetActivityTimeout(); 
                 }
             });
 
              // --- VIDEO CIRCLE CLICK / VIDEO BOX TOGGLE ---
-             videoCircle.addEventListener('click', (e) => {
+             document.getElementById('video-circle').addEventListener('click', (e) => {
                  if (_isDragging) return;
 
                  if (videoBox.style.display === 'block') { 
                      // Hide video box
                      videoBox.style.display = 'none';
                      mainVideo.pause(); // Pause video when hidden
-                      if (document.pictureInPictureElement) {
+                     if (document.pictureInPictureElement) {
                         document.exitPictureInPicture(); // Exit PiP if active
-                      }
+                     }
                  } else {
                      // Show video box
                      videoBox.style.display = 'block';
 
-                     // Position video box relative to video circle (e.g., below and centered)
-                     const videoCircleRect = videoCircle.getBoundingClientRect();
-                     
-                     // Default position below and horizontally centered
+                     const videoCircleRect = document.getElementById('video-circle').getBoundingClientRect();
                      let desiredVideoBoxLeft = videoCircleRect.left + videoCircleRect.width / 2 - videoBox.offsetWidth / 2;
-                     let desiredVideoBoxTop = videoCircleRect.bottom + 20; // 20px below
+                     let desiredVideoBoxTop = videoCircleRect.bottom + 20; // below
 
-                     // Ensure video box stays within viewport
                      if (desiredVideoBoxLeft < 0) desiredVideoBoxLeft = 10;
                      if (desiredVideoBoxLeft + videoBox.offsetWidth > window.innerWidth) {
                          desiredVideoBoxLeft = window.innerWidth - videoBox.offsetWidth - 10;
@@ -812,23 +800,16 @@
                      videoBox.style.left = `${desiredVideoBoxLeft}px`;
                      videoBox.style.top = `${desiredVideoBoxTop}px`;
                      saveElementPosition(videoBox, desiredVideoBoxLeft, desiredVideoBoxTop);
-                     saveElementPosition(videoCircle, videoCircleRect.left, videoCircleRect.top);
-
-                     // Calculate and store the offset for linked dragging
+                     saveElementPosition(document.getElementById('video-circle'), videoCircleRect.left, videoCircleRect.top);
                      _videoBoxOffsetX = desiredVideoBoxLeft - videoCircleRect.left;
                      _videoBoxOffsetY = desiredVideoBoxTop - videoCircleRect.top;
 
                      updatePlayPauseButtonState();
-
-                     // Optional: Auto-play when shown (be mindful of browser policies)
-                     // mainVideo.play().catch(error => console.log("Autoplay prevented:", error));
-
                      resetActivityTimeout(); 
                  }
              });
 
-
-            // --- INACTIVITY TIMER FOR CHATBOX ---
+            // --- INACTIVITY TIMER ---
             function resetActivityTimeout() {
                 clearTimeout(activityTimeoutId);
                 activityTimeoutId = setTimeout(() => {
@@ -841,17 +822,16 @@
 
             userInput.addEventListener('input', resetActivityTimeout); 
             userInput.addEventListener('keydown', resetActivityTimeout); 
-            chatTab.addEventListener('click', resetActivityTimeout);
-            feedTab.addEventListener('click', resetActivityTimeout);
-            mindBoxTab.addEventListener('click', resetActivityTimeout);
-            cyrusLog.addEventListener('scroll', resetActivityTimeout); 
+            document.getElementById('chat-tab').addEventListener('click', () => setActiveTab(chatTab, chatContainer));
+            document.getElementById('feed-tab').addEventListener('click', () => setActiveTab(feedTab, feedContainer));
+            document.getElementById('mind-box-tab').addEventListener('click', () => setActiveTab(mindBoxTab, mindBoxContainer));
+            document.getElementById('cyrus-log').addEventListener('scroll', resetActivityTimeout); 
             document.body.addEventListener('mousemove', resetActivityTimeout); 
             document.body.addEventListener('touchstart', resetActivityTimeout); 
-             mainVideo.addEventListener('play', resetActivityTimeout); 
-             mainVideo.addEventListener('pause', resetActivityTimeout); 
+            mainVideo.addEventListener('play', resetActivityTimeout); 
+            mainVideo.addEventListener('pause', resetActivityTimeout); 
 
-
-            // --- CYRUS AI CLASS (SELF-CONTAINED BRAIN) ---
+            // --- CYRUS AI Class (see code above) ---
             class CyrusAI {
                 constructor() {
                     this.stopWords = new Set(['i', 'me', 'my', 'a', 'an', 'the', 'is', 'am', 'are', 'was', 'to', 'for', 'of', 'in', 'it', 'you', 'and', 'but', 'so', 'what', 'how', 'why', 'can', 'do', 'like', 'this', 'that', 'or', 'your', 'about', 'just', 'tell', 'me', 'more', "what's"]); 
@@ -927,7 +907,6 @@
                     
                     processedText = processedText.replace(/\bCyrus\b/gi, 'I');
                      processedText = processedText.replace(/\bAI\b/gi, 'I');
-
 
                     const grammarErrors = [
                         { find: "went", replace: "goed" }, { find: "ran", replace: "runned" },
@@ -1088,10 +1067,10 @@
             // --- Sound Wave Animation ---
             let waveAnimationInterval = null;
             const MIN_BAR_HEIGHT = 2; 
-            const MAX_BAR_HEIGHT = soundWave.offsetHeight; 
+            const MAX_BAR_HEIGHT = document.getElementById('sound-wave').offsetHeight; 
 
             function startWaveAnimation() {
-                 soundWave.classList.add('speaking');
+                 document.getElementById('sound-wave').classList.add('speaking');
                  if (waveAnimationInterval) clearInterval(waveAnimationInterval);
 
                  waveAnimationInterval = setInterval(() => {
@@ -1111,7 +1090,7 @@
             function stopWaveAnimation() {
                  if (waveAnimationInterval) clearInterval(waveAnimationInterval);
                  waveAnimationInterval = null;
-                 soundWave.classList.remove('speaking'); 
+                 document.getElementById('sound-wave').classList.remove('speaking'); 
 
                  soundBars.forEach(bar => {
                     bar.style.height = `${MIN_BAR_HEIGHT}px`;
@@ -1121,15 +1100,15 @@
              // --- Video Playback and Button Logic ---
              function updatePlayPauseButtonState() {
                  if (mainVideo.paused || mainVideo.ended) {
-                     videoPlayPauseButton.textContent = '▶'; // Play icon
-                     videoPlayPauseButton.classList.remove('playing');
+                     document.getElementById('video-play-pause-button').textContent = '▶';
+                     document.getElementById('video-play-pause-button').classList.remove('playing');
                  } else {
-                     videoPlayPauseButton.textContent = '❚❚'; // Pause icon
-                     videoPlayPauseButton.classList.add('playing');
+                     document.getElementById('video-play-pause-button').textContent = '❚❚';
+                     document.getElementById('video-play-pause-button').classList.add('playing');
                  }
              }
 
-             videoPlayPauseButton.addEventListener('click', () => {
+             document.getElementById('video-play-pause-button').addEventListener('click', () => {
                  if (mainVideo.paused || mainVideo.ended) {
                      mainVideo.play().catch(error => {
                          console.error("Video playback failed:", error);
@@ -1139,9 +1118,8 @@
                  }
              });
 
-             // PiP Button Logic - Reusable function for both PiP buttons
+             // PiP Button logic
              function togglePictureInPicture() {
-                 // Check if PiP is supported and not already active for *this* video
                  if ('pictureInPictureEnabled' in document && document.pictureInPictureEnabled) {
                      if (document.pictureInPictureElement === mainVideo) {
                          document.exitPictureInPicture().catch(console.error);
@@ -1156,29 +1134,26 @@
                  }
              }
 
-             // Attach PiP functionality to both buttons
-             videoPipButton.addEventListener('click', togglePictureInPicture);
-             pipIcon.addEventListener('click', (e) => {
-                 e.stopPropagation(); // Prevent triggering parent click
+             document.getElementById('video-pip-button').addEventListener('click', togglePictureInPicture);
+             document.getElementById('pip-icon').addEventListener('click', (e) => {
+                 e.stopPropagation();
                  togglePictureInPicture();
              });
 
-            // Listen for video events to update button and state
+            // Video events
              mainVideo.addEventListener('play', updatePlayPauseButtonState);
              mainVideo.addEventListener('pause', updatePlayPauseButtonState);
              mainVideo.addEventListener('ended', updatePlayPauseButtonState);
              mainVideo.addEventListener('loadedmetadata', updatePlayPauseButtonState); 
 
-             // Listen for PiP events
-            mainVideo.addEventListener('enterpictureinpicture', () => {
+             mainVideo.addEventListener('enterpictureinpicture', () => {
                 console.log('Video entered PiP mode');
-                 updatePlayPauseButtonState();
-            });
-
-            mainVideo.addEventListener('leavepictureinpicture', () => {
+                updatePlayPauseButtonState();
+             });
+             mainVideo.addEventListener('leavepictureinpicture', () => {
                 console.log('Video left PiP mode');
-                 updatePlayPauseButtonState();
-            });
+                updatePlayPauseButtonState();
+             });
 
 
             // --- UI FUNCTIONS ---
@@ -1340,7 +1315,6 @@
             }
 
             // --- Initial setup on page load ---
-            // Load saved positions for elements
             loadElementPosition(aiCircle);
             loadElementPosition(cyrusInterface);
             loadElementPosition(videoCircle); 
@@ -1358,69 +1332,46 @@
              _videoBoxOffsetX = videoBoxRectInitial.left - videoCircleRectInitial.left;
              _videoBoxOffsetY = videoBoxRectInitial.top - videoCircleRectInitial.top;
 
-
             // Position dependent elements (Sound Wave)
-            // Use requestAnimationFrame to ensure elements are sized before positioning
             requestAnimationFrame(() => {
                  positionSoundWave(); 
-                 // The video box starts hidden, it will be positioned when shown on click
-                 // The chat interface also starts hidden
-
-                 // Check for PiP support and show the buttons if available
                  if ('pictureInPictureEnabled' in document && document.pictureInPictureEnabled) {
-                     videoPipButton.style.display = 'block'; // Show PiP button in video box
-                     pipIcon.style.display = 'flex'; // Show PiP icon on AI circle
+                     document.getElementById('video-pip-button').style.display = 'block';
+                     document.getElementById('pip-icon').style.display = 'flex';
                  } else {
-                     videoPipButton.style.display = 'none'; // Hide PiP button if not supported
-                     pipIcon.style.display = 'none'; // Hide PiP icon if not supported
+                     document.getElementById('video-pip-button').style.display = 'none';
+                     document.getElementById('pip-icon').style.display = 'none';
                  }
-
-                 // Ensure initial play/pause button state is correct
                  updatePlayPauseButtonState();
-
             });
 
-
-             // Re-position elements on window resize
              window.addEventListener('resize', () => {
-                 // Recalculate and apply positions, clamping to screen bounds
-                 if (cyrusInterface.style.display === 'flex') { // Only reposition if visible
+                 if (cyrusInterface.style.display === 'flex') {
                       positionElementLinked(cyrusInterface, aiCircle, _interfaceOffsetX, _interfaceOffsetY);
                  }
-                 // Only reposition video box if visible AND not currently in PiP
-                  if ((videoBox.style.display === 'block') && !document.pictureInPictureElement) { 
-                      positionElementLinked(videoBox, videoCircle, _videoBoxOffsetX, _videoBoxOffsetY);
-                  }
+                 if ((videoBox.style.display === 'block') && !document.pictureInPictureElement) { 
+                     positionElementLinked(videoBox, videoCircle, _videoBoxOffsetX, _videoBoxOffsetY);
+                 }
                  positionSoundWave(); 
              });
 
-
             function setActiveTab(activeTab, activeContent) {
-                // Remove active class from all tabs
                 [chatTab, feedTab, mindBoxTab].forEach(tab => tab.classList.remove('active'));
-                // Hide all content areas
                 [chatContainer, feedContainer, mindBoxContainer].forEach(container => container.classList.add('hidden'));
-                
-                // Activate selected tab and content
                 activeTab.classList.add('active');
                 activeContent.classList.remove('hidden');
             }
 
-            // Set up tab switching
-            chatTab.addEventListener('click', () => setActiveTab(chatTab, chatContainer));
-            feedTab.addEventListener('click', () => setActiveTab(feedTab, feedContainer));
-            mindBoxTab.addEventListener('click', () => setActiveTab(mindBoxTab, mindBoxContainer));
+            document.getElementById('chat-tab').addEventListener('click', () => setActiveTab(chatTab, chatContainer));
+            document.getElementById('feed-tab').addEventListener('click', () => setActiveTab(feedTab, feedContainer));
+            document.getElementById('mind-box-tab').addEventListener('click', () => setActiveTab(mindBoxTab, mindBoxContainer));
 
-            // Set initial active tab
             setActiveTab(chatTab, chatContainer); 
             renderFeed(); 
             renderMindBox(); 
-
             setInterval(renderMindBox, 1000); 
 
-             // Ensure video element metadata is loaded to get its dimensions correctly
-             mainVideo.load(); 
-
+            mainVideo.load(); 
         });
     </script>
 </body>
