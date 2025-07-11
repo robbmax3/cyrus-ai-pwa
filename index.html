@@ -1,1378 +1,1681 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-    <title>Cyrus AI</title>
-    <link rel="manifest" href="manifest.json" />
-    <meta name="theme-color" content="#1e1e1e" />
-    <style>
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
-            background-color: #121212; /* Dark background */
-            color: #e0e0e0; 
-            margin: 0; 
-            overflow: hidden; /* Prevent body scrolling when elements are dragged */
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Cyrus AI Floating Assistant</title>
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#1e1e1e" />
+  <style>
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
+      background-color: #121212; /* Dark background */
+      color: #e0e0e0; 
+      margin: 0; 
+      overflow: hidden; /* Prevent body scrolling when elements are dragged */
+    }
 
-        /* --- Floating Buttons (AI Circle, Video Circle) --- */
-        .floating-circle {
-             position: fixed;
-            width: 70px;
-            height: 70px;
-            border: 2px solid rgba(255, 255, 255, 0.7);
-            border-radius: 50%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 32px;
-            font-weight: bold;
-            color: #1e1e1e; 
-            cursor: grab; 
-            z-index: 1000; 
-            user-select: none; 
-             transition: box-shadow 0.2s ease-in-out;
-             touch-action: none; /* Prevent default touch actions like scrolling/zooming */
-        }
-         .floating-circle:hover {
-             box-shadow: 0 8px 25px rgba(0, 170, 255, 0.8);
-         }
-         .floating-circle.dragging {
-             cursor: grabbing;
-         }
+    /* Floating Assistant Button */
+    #floating-assistant {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      width: 70px;
+      height: 70px;
+      background: #007aff;
+      color: white;
+      font-size: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      z-index: 10000; /* Higher than Cyrus interface */
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+      cursor: grab;
+      user-select: none;
+      touch-action: none;
+    }
+    #floating-assistant:hover {
+      box-shadow: 0 8px 25px rgba(0, 170, 255, 0.8);
+    }
+    #floating-assistant.dragging {
+      cursor: grabbing;
+    }
 
-        #ai-circle {
-            /* Custom size for the AI circle (now rectangular) */
-            width: 200px;
-            height: 112px;
-            font-size: 24px; /* Adjust font size proportionally */
-            border-radius: 10px; /* Slightly rounded */
-            background-color: #000; /* Keep it black */
-            box-shadow: 0 6px 20px rgba(0, 170, 255, 0.6);
-            left: 50px; 
-            top: 50px; 
-            overflow: hidden; /* Keep video within bounds */
-        }
-        #ai-circle:hover {
-            box-shadow: 0 8px 25px rgba(0, 170, 255, 0.8);
-        }
+    /* --- Floating Buttons (AI Circle, Video Circle) --- */
+    .floating-circle {
+      position: fixed;
+      width: 70px;
+      height: 70px;
+      border: 2px solid rgba(255, 255, 255, 0.7);
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 32px;
+      font-weight: bold;
+      color: #1e1e1e; 
+      cursor: grab; 
+      z-index: 1000; 
+      user-select: none; 
+      transition: box-shadow 0.2s ease-in-out;
+      touch-action: none; /* Prevent default touch actions like scrolling/zooming */
+    }
+    .floating-circle:hover {
+      box-shadow: 0 8px 25px rgba(0, 170, 255, 0.8);
+    }
+    .floating-circle.dragging {
+      cursor: grabbing;
+    }
 
-        /* Video styling for AI button (the video inside the circle) */
-        #ai-video {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            border-radius: 10px; /* Optional: match container rounding */
-        }
+    #ai-circle {
+      /* Custom size for the AI circle (now rectangular) */
+      width: 200px;
+      height: 112px;
+      font-size: 24px; /* Adjust font size proportionally */
+      border-radius: 10px; /* Slightly rounded */
+      background-color: #000; /* Keep it black */
+      box-shadow: 0 6px 20px rgba(0, 170, 255, 0.6);
+      left: 50px; 
+      top: 50px; 
+      overflow: hidden; /* Keep video within bounds */
+    }
+    #ai-circle:hover {
+      box-shadow: 0 8px 25px rgba(0, 170, 255, 0.8);
+    }
 
-        /* --- Video Circle --- */
-        #video-circle {
-            left: 150px; /* Default different position */
-            top: 50px; /* Default starting position */
-            background-color: #ff6600; /* Orange color */
-            box-shadow: 0 6px 20px rgba(255, 102, 0, 0.6);
-            font-size: 24px; /* Smaller text */
-            color: white;
-        }
-        #video-circle:hover {
-            box-shadow: 0 8px 25px rgba(255, 102, 0, 0.8);
-        }
+    /* Video styling for AI button (the video inside the circle) */
+    #ai-video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 10px; /* Optional: match container rounding */
+    }
 
-        /* --- PiP Icon on AI Circle --- */
-        #pip-icon {
-            position: absolute;
-            bottom: -8px;
-            right: -8px;
-            width: 24px;
-            height: 24px;
-            background-color: rgba(255, 255, 255, 0.2);
-            border-radius: 50%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 14px;
-            cursor: pointer;
-            border: 1px solid rgba(255, 255, 255, 0.5);
-            transition: background-color 0.2s ease-in-out;
-            z-index: 1001; /* Higher than the circle */
-        }
-        #pip-icon:hover {
-            background-color: rgba(255,255,255,0.4);
-        }
+    /* Video placeholder overlay */
+    .video-placeholder {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.7);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      color: white;
+      cursor: pointer;
+      z-index: 10;
+    }
+    .video-placeholder i {
+      font-size: 40px;
+      margin-bottom: 8px;
+    }
+    .video-placeholder span {
+      font-size: 14px;
+    }
 
-        /* --- Sound Wave Visualization --- */
-        #sound-wave {
-            position: fixed; 
-            display: flex; 
-            align-items: flex-end; 
-            justify-content: space-between; 
-            width: 50px; 
-            height: 30px; 
-            pointer-events: none; 
-            z-index: 999; 
-            opacity: 0; 
-            transition: opacity 0.3s ease-in-out;
-        }
+    /* --- Video Circle --- */
+    #video-circle {
+      left: 150px; /* Default different position */
+      top: 50px; /* Default starting position */
+      background-color: #ff6600; /* Orange color */
+      box-shadow: 0 6px 20px rgba(255, 102, 0, 0.6);
+      font-size: 24px; /* Smaller text */
+      color: white;
+    }
+    #video-circle:hover {
+      box-shadow: 0 8px 25px rgba(255, 102, 0, 0.8);
+    }
 
-        #sound-wave.speaking {
-            opacity: 1; 
-        }
+    /* --- PiP Icon on AI Circle --- */
+    #pip-icon {
+      position: absolute;
+      bottom: -8px;
+      right: -8px;
+      width: 24px;
+      height: 24px;
+      background-color: rgba(255, 255, 255, 0.2);
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 14px;
+      cursor: pointer;
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      transition: background-color 0.2s ease-in-out;
+      z-index: 1001; /* Higher than the circle */
+    }
+    #pip-icon:hover {
+      background-color: rgba(255,255,255,0.4);
+    }
+    #pip-icon.pip-active {
+      background-color: #00aaff;
+      color: #1e1e1e;
+    }
 
-        .sound-wave-bar {
-            width: 4px; 
-            height: 2px; 
-            background-color: #00aaff; 
-            border-radius: 2px; 
-            transition: height 0.1s ease-out; 
-        }
+    /* --- Sound Wave Visualization --- */
+    #sound-wave {
+      position: fixed; 
+      display: flex; 
+      align-items: flex-end; 
+      justify-content: space-between; 
+      width: 50px; 
+      height: 30px; 
+      pointer-events: none; 
+      z-index: 999; 
+      opacity: 0; 
+      transition: opacity 0.3s ease-in-out;
+    }
 
-        /* --- Cyrus Interface (The Chat Window) --- */
-        #cyrus-interface { 
-            display: none; 
-            position: fixed; 
-            width: 90%; 
-            max-width: 500px; 
-            height: 70vh; 
-            background-color: #1e1e1e; 
-            border-radius: 20px; 
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); 
-            z-index: 998; 
-            flex-direction: column; 
-            overflow: hidden; 
-            border: 1px solid #333; 
-            cursor: grab; 
-            touch-action: none; 
-        }
-        #cyrus-interface.dragging {
-            cursor: grabbing;
-        }
+    #sound-wave.speaking {
+      opacity: 1; 
+    }
 
-        /* --- Video Box --- */
-        #video-box {
-            display: none; 
-            position: fixed; 
-            width: 80%; 
-            max-width: 600px; 
-            height: auto; 
-            background-color: #000; 
-            border-radius: 20px; 
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7); 
-            z-index: 996; 
-            overflow: hidden; 
-            cursor: grab; 
-            touch-action: none; 
-        }
-        #video-box.dragging {
-            cursor: grabbing;
-        }
+    .sound-wave-bar {
+      width: 4px; 
+      height: 2px; 
+      background-color: #00aaff; 
+      border-radius: 2px; 
+      transition: height 0.1s ease-out; 
+    }
 
-        #main-video {
-            display: block; 
-            width: 100%;
-            height: auto; 
-            object-fit: cover; 
-        }
+    /* --- Cyrus Interface (The Chat Window) --- */
+    #cyrus-interface { 
+      display: none; 
+      position: fixed; 
+      width: 90%; 
+      max-width: 500px; 
+      height: 70vh; 
+      background-color: #1e1e1e; 
+      border-radius: 20px; 
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); 
+      z-index: 9999; /* Same as floating assistant */
+      flex-direction: column; 
+      overflow: hidden; 
+      border: 1px solid #333; 
+      cursor: grab; 
+      touch-action: none; 
+    }
+    #cyrus-interface.dragging {
+      cursor: grabbing;
+    }
 
-        #video-play-pause-button {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 10; 
-            background-color: rgba(0, 0, 0, 0.6); 
-            color: white;
-            font-size: 40px; 
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            cursor: pointer;
-            border: 2px solid rgba(255, 255, 255, 0.8);
-            transition: opacity 0.3s ease-in-out;
-            user-select: none;
-        }
-        #video-play-pause-button:hover {
-            background-color: rgba(0, 0, 0, 0.8);
-        }
+    /* --- Video Box --- */
+    #video-box {
+      display: none; 
+      position: fixed; 
+      width: 80%; 
+      max-width: 600px; 
+      height: auto; 
+      background-color: #000; 
+      border-radius: 20px; 
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7); 
+      z-index: 996; 
+      overflow: hidden; 
+      cursor: grab; 
+      touch-action: none; 
+    }
+    #video-box.dragging {
+      cursor: grabbing;
+    }
 
-        #video-pip-button {
-            position: absolute;
-            top: 10px; /* 10px from top */
-            right: 10px; /* 10px from right */
-            z-index: 10; 
-            background-color: rgba(0, 0, 0, 0.6); 
-            color: white;
-            font-size: 18px; /* Smaller icon */
-            padding: 8px 12px; /* Padding for button */
-            border-radius: 8px; /* Slightly rounded corners */
-            cursor: pointer;
-            border: 1px solid rgba(255, 255, 255, 0.5);
-            transition: background-color 0.2s ease-in-out;
-            user-select: none;
-            display: none; /* Hidden by default, shown by JS if supported */
-        }
-        #video-pip-button:hover {
-            background-color: rgba(0, 0, 0, 0.8);
-        }
-        #video-pip-button::before {
-            content: '❐'; /* Unicode for a square/window shape */
-            margin-right: 4px;
-            font-size: 1.2em;
-            line-height: 1;
-            vertical-align: middle;
-        }
+    #main-video {
+      display: block; 
+      width: 100%;
+      height: auto; 
+      object-fit: cover; 
+    }
 
-        .hidden { display: none !important; }
+    #video-play-pause-button {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 10; 
+      background-color: rgba(0, 0, 0, 0.6); 
+      color: white;
+      font-size: 40px; 
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      border: 2px solid rgba(255, 255, 255, 0.8);
+      transition: opacity 0.3s ease-in-out;
+      user-select: none;
+    }
+    #video-play-pause-button:hover {
+      background-color: rgba(0, 0, 0, 0.8);
+    }
+    #video-play-pause-button.playing {
+      opacity: 0;
+      pointer-events: none;
+    }
+    #video-box:hover #video-play-pause-button:not(.playing) {
+      opacity: 1;
+    }
 
-        #nav-tabs { 
-            display: flex; 
-            border-bottom: 1px solid #333; 
-        }
-        .tab-button { 
-            flex-grow: 1; 
-            background: none; 
-            border: none; 
-            color: #888; 
-            padding: 15px; 
-            font-size: 16px; 
-            font-weight: bold; 
-            cursor: pointer; 
-            transition: color 0.2s, border-bottom 0.2s; 
-            border-bottom: 3px solid transparent; 
-        }
-        .tab-button.active { 
-            color: #00aaff; 
-            border-bottom: 3px solid #00aaff; 
-        }
+    #video-pip-button {
+      position: absolute;
+      top: 10px; /* 10px from top */
+      right: 10px; /* 10px from right */
+      z-index: 10; 
+      background-color: rgba(0, 0, 0, 0.6); 
+      color: white;
+      font-size: 18px; /* Smaller icon */
+      padding: 8px 12px; /* Padding for button */
+      border-radius: 8px; /* Slightly rounded corners */
+      cursor: pointer;
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      transition: background-color 0.2s ease-in-out;
+      user-select: none;
+      display: none; /* Hidden by default, shown by JS if supported */
+    }
+    #video-pip-button:hover {
+      background-color: rgba(0, 0, 0, 0.8);
+    }
+    #video-pip-button::before {
+      content: '❐'; /* Unicode for a square/window shape */
+      margin-right: 4px;
+      font-size: 1.2em;
+      line-height: 1;
+      vertical-align: middle;
+    }
+    #video-pip-button.pip-active {
+      background-color: #00aaff;
+      color: #1e1e1e;
+    }
 
-        .content-area { 
-            flex-grow: 1; 
-            display: flex; 
-            flex-direction: column; 
-            overflow-y: auto; 
-        } 
-        #chat-container { 
-            height: 100%; 
-            display: flex; 
-            flex-direction: column; 
-        } 
-        #cyrus-log { 
-            flex-grow: 1; 
-            padding: 20px; 
-            overflow-y: auto; 
-            display: flex; 
-            flex-direction: column-reverse; 
-            scrollbar-width: none; 
-        }
-        #cyrus-log::-webkit-scrollbar {
-            display: none; 
-        }
+    /* Notification styles */
+    .pip-notification {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: rgba(0, 170, 255, 0.9);
+      color: white;
+      padding: 10px 20px;
+      border-radius: 20px;
+      z-index: 10000;
+      animation: fadeInOut 3s forwards;
+      display: none;
+    }
+    @keyframes fadeInOut {
+      0% { opacity: 0; transform: translateX(-50%) translateY(20px); }
+      10% { opacity: 1; transform: translateX(-50%) translateY(0); }
+      90% { opacity: 1; transform: translateX(-50%) translateY(0); }
+      100% { opacity: 0; transform: translateX(-50%) translateY(20px); }
+    }
 
-        .log-entry { 
-            margin-bottom: 15px; 
-            max-width: 80%; 
-            padding: 10px 15px; 
-            border-radius: 18px; 
-            line-height: 1.4; 
-            animation: fadeIn 0.5s ease-out forwards; 
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+    .hidden { display: none !important; }
 
-        .user-msg { 
-            background-color: #007bff; 
-            color: white; 
-            align-self: flex-end; 
-            border-bottom-right-radius: 4px; 
-        }
-        .cyrus-msg { 
-            background-color: #333; 
-            color: #e0e0e0; 
-            align-self: flex-start; 
-            border-bottom-left-radius: 4px; 
-        }
-        .thinking-msg { 
-            background-color: transparent; 
-            color: #888; 
-            font-style: italic; 
-            align-self: flex-start; 
-        }
+    #nav-tabs { 
+      display: flex; 
+      border-bottom: 1px solid #333; 
+    }
+    .tab-button { 
+      flex-grow: 1; 
+      background: none; 
+      border: none; 
+      color: #888; 
+      padding: 15px; 
+      font-size: 16px; 
+      font-weight: bold; 
+      cursor: pointer; 
+      transition: color 0.2s, border-bottom 0.2s; 
+      border-bottom: 3px solid transparent; 
+    }
+    .tab-button.active { 
+      color: #00aaff; 
+      border-bottom: 3px solid #00aaff; 
+    }
 
-        #input-area { 
-            display: flex; 
-            padding: 10px; 
-            border-top: 1px solid #333; 
-            background-color: #1e1e1e; 
-            flex-shrink: 0; 
-        }
-        #user-input { 
-            flex-grow: 1; 
-            background-color: #2b2b2b; 
-            border: none; 
-            border-radius: 20px; 
-            padding: 12px 15px; 
-            color: white; 
-            font-size: 16px; 
-            transition: box-shadow 0.2s;
-        }
-        #user-input:focus {
-            outline: none;
-            box-shadow: 0 0 0 2px #00aaff;
-        }
-        #user-input:disabled {
-            background-color: #222;
-        }
+    .content-area { 
+      flex-grow: 1; 
+      display: flex; 
+      flex-direction: column; 
+      overflow-y: auto; 
+    } 
+    #chat-container { 
+      height: 100%; 
+      display: flex; 
+      flex-direction: column; 
+    } 
+    #cyrus-log { 
+      flex-grow: 1; 
+      padding: 20px; 
+      overflow-y: auto; 
+      display: flex; 
+      flex-direction: column-reverse; 
+      scrollbar-width: none; 
+    }
+    #cyrus-log::-webkit-scrollbar {
+      display: none; 
+    }
 
-        /* Feed Container Styles */
-        #feed-container { 
-            padding: 10px; 
-            scrollbar-width: none; 
-        }
-        #feed-container::-webkit-scrollbar {
-            display: none; 
-        }
+    .log-entry { 
+      margin-bottom: 15px; 
+      max-width: 80%; 
+      padding: 10px 15px; 
+      border-radius: 18px; 
+      line-height: 1.4; 
+      animation: fadeIn 0.5s ease-out forwards; 
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
 
-        .tweet-card { 
-            background-color: #1e1e1e; 
-            border: 1px solid #38444d; 
-            border-radius: 15px; 
-            margin-bottom: 10px; 
-            padding: 15px; 
-        }
-        .tweet-header { 
-            display: flex; 
-            align-items: center; 
-            margin-bottom: 10px; 
-        }
-        .tweet-pfp { 
-            width: 40px; 
-            height: 40px; 
-            border-radius: 50%; 
-            background-color: #00aaff; 
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            font-size: 20px; 
-            font-weight: bold; 
-            color: #1e1e1e; 
-            margin-right: 10px; 
-            flex-shrink: 0; 
-        }
-        .tweet-author { 
-            font-weight: bold; 
-        } 
-        .tweet-handle { 
-            color: #8899a6; 
-            font-size: 14px; 
-        }
-        .tweet-content { 
-            font-size: 16px; 
-            line-height: 1.5; 
-            white-space: pre-wrap; 
-            margin-bottom: 15px; 
-        }
-        .tweet-timestamp { 
-            color: #8899a6; 
-            font-size: 13px; 
-        }
-        .tweet-actions { 
-            display: flex; 
-            margin-top: 15px; 
-            padding-top: 10px; 
-            border-top: 1px solid #38444d; 
-        }
-        .reply-button { 
-            background: none; 
-            border: none; 
-            color: #00aaff; 
-            cursor: pointer; 
-            font-size: 14px; 
-            font-weight: bold; 
-        }
-        .replies-container { 
-            margin-top: 15px; 
-            margin-left: 15px; 
-            border-left: 2px solid #38444d; 
-            padding-left: 15px; 
-        }
-        .reply { 
-            display: flex; 
-            align-items: flex-start; 
-            margin-bottom: 15px; 
-        }
-        .reply .tweet-pfp { 
-            width: 30px; 
-            height: 30px; 
-            font-size: 16px; 
-        }
-        .reply-content { 
-            display: flex; 
-            flex-direction: column; 
-        }
+    .user-msg { 
+      background-color: #007bff; 
+      color: white; 
+      align-self: flex-end; 
+      border-bottom-right-radius: 4px; 
+    }
+    .cyrus-msg { 
+      background-color: #333; 
+      color: #e0e0e0; 
+      align-self: flex-start; 
+      border-bottom-left-radius: 4px; 
+    }
+    .thinking-msg { 
+      background-color: transparent; 
+      color: #888; 
+      font-style: italic; 
+      align-self: flex-start; 
+    }
 
-        /* Novel Mind Tab Styles */
-        #mind-box-container { padding: 20px; }
-        #mind-box-container::-webkit-scrollbar {
-            display: none; 
-        }
-        .mind-card { 
-            background-color: #2b2b2b; 
-            border-radius: 15px; 
-            padding: 15px; 
-            margin-bottom: 15px; 
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3); 
-        }
-        .mind-card h4 { 
-            margin-top: 0; 
-            color: #00aaff; 
-        }
-        .mind-stats p { 
-            margin: 5px 0; 
-            font-size: 15px; 
-        }
-    </style>
+    #input-area { 
+      display: flex; 
+      padding: 10px; 
+      border-top: 1px solid #333; 
+      background-color: #1e1e1e; 
+      flex-shrink: 0; 
+    }
+    #user-input { 
+      flex-grow: 1; 
+      background-color: #2b2b2b; 
+      border: none; 
+      border-radius: 20px; 
+      padding: 12px 15px; 
+      color: white; 
+      font-size: 16px; 
+      transition: box-shadow 0.2s;
+    }
+    #user-input:focus {
+      outline: none;
+      box-shadow: 0 0 0 2px #00aaff;
+    }
+    #user-input:disabled {
+      background-color: #222;
+    }
+
+    /* Feed Container Styles */
+    #feed-container { 
+      padding: 10px; 
+      scrollbar-width: none; 
+    }
+    #feed-container::-webkit-scrollbar {
+      display: none; 
+    }
+
+    .tweet-card { 
+      background-color: #1e1e1e; 
+      border: 1px solid #38444d; 
+      border-radius: 15px; 
+      margin-bottom: 10px; 
+      padding: 15px; 
+    }
+    .tweet-header { 
+      display: flex; 
+      align-items: center; 
+      margin-bottom: 10px; 
+    }
+    .tweet-pfp { 
+      width: 40px; 
+      height: 40px; 
+      border-radius: 50%; 
+      background-color: #00aaff; 
+      display: flex; 
+      justify-content: center; 
+      align-items: center; 
+      font-size: 20px; 
+      font-weight: bold; 
+      color: #1e1e1e; 
+      margin-right: 10px; 
+      flex-shrink: 0; 
+    }
+    .tweet-author { 
+      font-weight: bold; 
+    } 
+    .tweet-handle { 
+      color: #8899a6; 
+      font-size: 14px; 
+    }
+    .tweet-content { 
+      font-size: 16px; 
+      line-height: 1.5; 
+      white-space: pre-wrap; 
+      margin-bottom: 15px; 
+    }
+    .tweet-timestamp { 
+      color: #8899a6; 
+      font-size: 13px; 
+    }
+    .tweet-actions { 
+      display: flex; 
+      margin-top: 15px; 
+      padding-top: 10px; 
+      border-top: 1px solid #38444d; 
+    }
+    .reply-button { 
+      background: none; 
+      border: none; 
+      color: #00aaff; 
+      cursor: pointer; 
+      font-size: 14px; 
+      font-weight: bold; 
+    }
+    .replies-container { 
+      margin-top: 15px; 
+      margin-left: 15px; 
+      border-left: 2px solid #38444d; 
+      padding-left: 15px; 
+    }
+    .reply { 
+      display: flex; 
+      align-items: flex-start; 
+      margin-bottom: 15px; 
+    }
+    .reply .tweet-pfp { 
+      width: 30px; 
+      height: 30px; 
+      font-size: 16px; 
+    }
+    .reply-content { 
+      display: flex; 
+      flex-direction: column; 
+    }
+
+    /* Novel Mind Tab Styles */
+    #mind-box-container { padding: 20px; }
+    #mind-box-container::-webkit-scrollbar {
+      display: none; 
+    }
+    .mind-card { 
+      background-color: #2b2b2b; 
+      border-radius: 15px; 
+      padding: 15px; 
+      margin-bottom: 15px; 
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3); 
+    }
+    .mind-card h4 { 
+      margin-top: 0; 
+      color: #00aaff; 
+    }
+    .mind-stats p { 
+      margin: 5px 0; 
+      font-size: 15px; 
+    }
+  </style>
 </head>
 <body>
-    <!-- Floating Buttons -->
-    <div id="ai-circle" class="floating-circle">
-        <!-- Replaced image/icon with a video element -->
-        <video id="ai-video" autoplay loop muted playsinline>
-            <source src="https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4" type="video/mp4" />
-        </video>
-        <div id="pip-icon" class="pip-icon">🎥</div>
+  <!-- Floating Assistant Button -->
+  <div id="floating-assistant">💬</div>
+
+  <!-- Floating Buttons -->
+  <div id="ai-circle" class="floating-circle">
+    <video id="ai-video" muted playsinline loop>
+      <source src="https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4" type="video/mp4" />
+    </video>
+    <div id="pip-icon" class="pip-icon">🎥</div>
+  </div>
+  <div id="video-circle" class="floating-circle">Vid</div>
+
+  <!-- Sound Wave Element -->
+  <div id="sound-wave">
+    <div class="sound-wave-bar"></div>
+    <div class="sound-wave-bar"></div>
+    <div class="sound-wave-bar"></div>
+    <div class="sound-wave-bar"></div>
+    <div class="sound-wave-bar"></div>
+    <div class="sound-wave-bar"></div>
+    <div class="sound-wave-bar"></div>
+    <div class="sound-wave-bar"></div>
+  </div>
+
+  <!-- Notification element -->
+  <div id="pip-notification" class="pip-notification"></div>
+
+  <!-- Video Box -->
+  <div id="video-box">
+    <video id="main-video" loop playsinline controlslist="nodownload nofullscreen noremoteplayback">
+      <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4" />
+      Your browser does not support the video tag.
+    </video>
+    <div id="video-play-pause-button">▶</div>
+    <div id="video-pip-button">PiP</div>
+  </div>
+
+  <div id="cyrus-interface">
+    <div id="nav-tabs">
+      <button id="chat-tab" class="tab-button active">Chat</button>
+      <button id="feed-tab" class="tab-button">Feed</button>
+      <button id="mind-box-tab" class="tab-button">Mind Box</button>
     </div>
-    <div id="video-circle" class="floating-circle">Vid</div>
-
-    <!-- Sound Wave Element -->
-    <div id="sound-wave">
-        <div class="sound-wave-bar"></div>
-        <div class="sound-wave-bar"></div>
-        <div class="sound-wave-bar"></div>
-        <div class="sound-wave-bar"></div>
-        <div class="sound-wave-bar"></div>
-        <div class="sound-wave-bar"></div>
-        <div class="sound-wave-bar"></div>
-        <div class="sound-wave-bar"></div>
+    <div id="chat-container" class="content-area">
+      <div id="cyrus-log"></div>
+      <div id="input-area">
+        <input type="text" id="user-input" placeholder="Converse with Cyrus..." />
+      </div>
     </div>
-
-     <!-- Video Box -->
-     <div id="video-box">
-         <video id="main-video" loop playsinline controlslist="nodownload nofullscreen noremoteplayback">
-             <!-- Replace with your video source -->
-             <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4" />
-             <!-- Add other formats if needed -->
-             Your browser does not support the video tag.
-         </video>
-         <div id="video-play-pause-button">▶</div>
-         <div id="video-pip-button">PiP</div> <!-- New PiP button -->
-     </div>
-
-    <div id="cyrus-interface">
-        <div id="nav-tabs">
-            <button id="chat-tab" class="tab-button active">Chat</button>
-            <button id="feed-tab" class="tab-button">Feed</button>
-            <button id="mind-box-tab" class="tab-button">Mind Box</button>
+    <div id="feed-container" class="content-area hidden"></div>
+    <div id="mind-box-container" class="content-area hidden">
+      <div class="mind-card">
+        <h4>Cyrus's Operational Metrics</h4>
+        <div class="mind-stats">
+          <p><strong>Total Chat Turns:</strong> <span id="stat-chat-turns">0</span></p>
+          <p><strong>Total Feed Posts:</strong> <span id="stat-feed-posts">0</span></p>
+          <p><strong>Total Feed Replies:</strong> <span id="stat-feed-replies">0</span></p>
+          <p><strong>Active Session Time:</strong> <span id="stat-session-time">0m 0s</span></p>
         </div>
-        <div id="chat-container" class="content-area">
-            <div id="cyrus-log"></div>
-            <div id="input-area">
-                <input type="text" id="user-input" placeholder="Converse with Cyrus..." />
-            </div>
+      </div>
+      <div class="mind-card">
+        <h4>Novel Progress Metrics</h4>
+        <div class="mind-stats">
+          <p><strong>Total Novel Ideas Shared:</strong> <span id="stat-novel-ideas">0</span></p>
+          <p><strong>Characters Defined:</strong> <span id="stat-characters">0</span></p>
+          <p><strong>Plot Points Mapped:</strong> <span id="stat-plot-points">0</span></p>
+          <p><strong>World Elements Described:</strong> <span id="stat-world-elements">0</span></p>
         </div>
-        <div id="feed-container" class="content-area hidden"></div>
-        <div id="mind-box-container" class="content-area hidden">
-            <div class="mind-card">
-                <h4>Cyrus's Operational Metrics</h4>
-                <div class="mind-stats">
-                    <p><strong>Total Chat Turns:</strong> <span id="stat-chat-turns">0</span></p>
-                    <p><strong>Total Feed Posts:</strong> <span id="stat-feed-posts">0</span></p>
-                    <p><strong>Total Feed Replies:</strong> <span id="stat-feed-replies">0</span></p>
-                    <p><strong>Active Session Time:</strong> <span id="stat-session-time">0m 0s</span></p>
-                </div>
-            </div>
-            <div class="mind-card">
-                <h4>Novel Progress Metrics</h4>
-                <div class="mind-stats">
-                    <p><strong>Total Novel Ideas Shared:</strong> <span id="stat-novel-ideas">0</span></p>
-                    <p><strong>Characters Defined:</strong> <span id="stat-characters">0</span></p>
-                    <p><strong>Plot Points Mapped:</strong> <span id="stat-plot-points">0</span></p>
-                    <p><strong>World Elements Described:</strong> <span id="stat-world-elements">0</span></p>
-                </div>
-            </div>
-        </div>
+      </div>
     </div>
+  </div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const aiCircle = document.getElementById('ai-circle');
-            const videoCircle = document.getElementById('video-circle'); 
-            const soundWave = document.getElementById('sound-wave');
-            const soundBars = soundWave.querySelectorAll('.sound-wave-bar');
-            const cyrusInterface = document.getElementById('cyrus-interface');
-            const videoBox = document.getElementById('video-box'); 
-            const mainVideo = document.getElementById('main-video'); 
-            const aiVideo = document.getElementById('ai-video'); // Our new video element inside AI circle
-            const videoPlayPauseButton = document.getElementById('video-play-pause-button'); 
-            const videoPipButton = document.getElementById('video-pip-button');
-            const pipIcon = document.getElementById('pip-icon'); // New PiP icon
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Floating Assistant Button
+      const floatingAssistant = document.getElementById('floating-assistant');
+      let isDragging = false;
+      let offsetX = 0;
+      let offsetY = 0;
 
-            const cyrusLog = document.getElementById('cyrus-log');
-            const userInput = document.getElementById('user-input');
-            const chatTab = document.getElementById('chat-tab');
-            const feedTab = document.getElementById('feed-tab');
-            const mindBoxTab = document.getElementById('mind-box-tab');
-            const chatContainer = document.getElementById('chat-container');
-            const feedContainer = document.getElementById('feed-container');
-            const mindBoxContainer = document.getElementById('mind-box-container');
+      // --- Desktop Drag ---
+      floatingAssistant.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        offsetX = e.clientX - floatingAssistant.getBoundingClientRect().left;
+        offsetY = e.clientY - floatingAssistant.getBoundingClientRect().top;
+        floatingAssistant.style.cursor = 'grabbing';
+      });
 
-            let feedPosts = JSON.parse(localStorage.getItem('cyrusTweetsV2')) || [];
-            let metrics = JSON.parse(localStorage.getItem('cyrusMetrics')) || {
-                chatTurns: 0,
-                feedPosts: 0,
-                feedReplies: 0,
-                novelIdeas: 0,
-                characters: 0,
-                plotPoints: 0,
-                worldElements: 0,
-                sessionStartTime: Date.now() 
-            };
+      document.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        floatingAssistant.style.left = `${e.clientX - offsetX}px`;
+        floatingAssistant.style.top = `${e.clientY - offsetY}px`;
+        floatingAssistant.style.right = 'auto';
+        floatingAssistant.style.bottom = 'auto';
+      });
+
+      document.addEventListener('mouseup', () => {
+        isDragging = false;
+        floatingAssistant.style.cursor = 'grab';
+      });
+
+      // --- Mobile Touch Drag ---
+      floatingAssistant.addEventListener('touchstart', (e) => {
+        isDragging = true;
+        const touch = e.touches[0];
+        offsetX = touch.clientX - floatingAssistant.getBoundingClientRect().left;
+        offsetY = touch.clientY - floatingAssistant.getBoundingClientRect().top;
+      });
+
+      document.addEventListener('touchmove', (e) => {
+        if (!isDragging) return;
+        const touch = e.touches[0];
+        floatingAssistant.style.left = `${touch.clientX - offsetX}px`;
+        floatingAssistant.style.top = `${touch.clientY - offsetY}px`;
+        floatingAssistant.style.right = 'auto';
+        floatingAssistant.style.bottom = 'auto';
+      });
+
+      document.addEventListener('touchend', () => {
+        isDragging = false;
+      });
+
+      // Cyrus AI Elements
+      const aiCircle = document.getElementById('ai-circle');
+      const videoCircle = document.getElementById('video-circle'); 
+      const soundWave = document.getElementById('sound-wave');
+      const soundBars = soundWave.querySelectorAll('.sound-wave-bar');
+      const cyrusInterface = document.getElementById('cyrus-interface');
+      const videoBox = document.getElementById('video-box'); 
+      const mainVideo = document.getElementById('main-video'); 
+      const aiVideo = document.getElementById('ai-video');
+      const videoPlayPauseButton = document.getElementById('video-play-pause-button'); 
+      const videoPipButton = document.getElementById('video-pip-button');
+      const pipIcon = document.getElementById('pip-icon');
+      const pipNotification = document.getElementById('pip-notification');
+
+      const cyrusLog = document.getElementById('cyrus-log');
+      const userInput = document.getElementById('user-input');
+      const chatTab = document.getElementById('chat-tab');
+      const feedTab = document.getElementById('feed-tab');
+      const mindBoxTab = document.getElementById('mind-box-tab');
+      const chatContainer = document.getElementById('chat-container');
+      const feedContainer = document.getElementById('feed-container');
+      const mindBoxContainer = document.getElementById('mind-box-container');
+
+      let feedPosts = JSON.parse(localStorage.getItem('cyrusTweetsV2')) || [];
+      let metrics = JSON.parse(localStorage.getItem('cyrusMetrics')) || {
+        chatTurns: 0,
+        feedPosts: 0,
+        feedReplies: 0,
+        novelIdeas: 0,
+        characters: 0,
+        plotPoints: 0,
+        worldElements: 0,
+        sessionStartTime: Date.now() 
+      };
+      
+      let hasWelcomed = localStorage.getItem('cyrusHasWelcomed') === 'true';
+      let activityTimeoutId;
+      const ACTIVITY_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
+
+      // Track if video has been played
+      let videoPlayed = false;
+
+      // Enhanced Picture-in-Picture functionality
+      function showPipNotification(message) {
+        pipNotification.textContent = message;
+        pipNotification.style.display = 'block';
+        setTimeout(() => {
+          pipNotification.style.display = 'none';
+        }, 3000);
+      }
+
+      async function toggleAiVideoPip() {
+        if (!aiVideo || aiVideo.readyState < 2) {
+          showPipNotification("Video not ready yet");
+          return;
+        }
+
+        try {
+          if (document.pictureInPictureElement === aiVideo) {
+            await document.exitPictureInPicture();
+            pipIcon.classList.remove('pip-active');
+            showPipNotification("Exited Picture-in-Picture");
+          } else {
+            // Ensure video is playing before entering PiP
+            if (aiVideo.paused) {
+              try {
+                await aiVideo.play();
+              } catch (playError) {
+                console.error("Couldn't play video:", playError);
+                showPipNotification("Click the video first to play");
+                return;
+              }
+            }
             
-            let hasWelcomed = localStorage.getItem('cyrusHasWelcomed') === 'true';
-            let activityTimeoutId;
-            const ACTIVITY_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
-
-            // --- FLOATING ELEMENT POSITIONING/DRAGGING ---
-            let _isDragging = false;
-            let _draggedElement = null; 
-            let _initialMouseX, _initialMouseY;
-            let _initialElementX, _initialElementY; 
-            let _interfaceOffsetX, _interfaceOffsetY; 
-            let _videoBoxOffsetX, _videoBoxOffsetY; 
-
-            const SOUND_WAVE_OFFSET_X = 10; 
-
-            function saveElementPosition(element, x, y) {
-                localStorage.setItem(`${element.id}X`, x);
-                localStorage.setItem(`${element.id}Y`, y);
-            }
-
-            function loadElementPosition(element) {
-                const storedX = localStorage.getItem(`${element.id}X`);
-                const storedY = localStorage.getItem(`${element.id}Y`);
-                if (storedX !== null && storedY !== null) {
-                    element.style.left = `${storedX}px`;
-                    element.style.top = `${storedY}px`;
-                    return true; 
-                }
-                return false; 
-            }
-
-            function getElementCoords(element) {
-                const rect = element.getBoundingClientRect();
-                return { x: rect.left, y: rect.top };
-            }
-
-             function positionSoundWave() {
-                const aiRect = aiCircle.getBoundingClientRect();
-                const waveHeight = soundWave.offsetHeight;
-
-                const waveLeft = aiRect.right + SOUND_WAVE_OFFSET_X;
-                const waveTop = aiRect.top + aiRect.height / 2 - waveHeight / 2;
-
-                soundWave.style.left = `${waveLeft}px`;
-                soundWave.style.top = `${waveTop}px`;
-            }
-
-            function positionElementLinked(targetElement, anchorElement, offsetX, offsetY) {
-                 const anchorRect = anchorElement.getBoundingClientRect();
-                 let newX = anchorRect.left + offsetX;
-                 let newY = anchorRect.top + offsetY;
-
-                 // Boundary check for the target element
-                 newX = Math.max(0, Math.min(newX, window.innerWidth - targetElement.offsetWidth));
-                 newY = Math.max(0, Math.min(newY, window.innerHeight - targetElement.offsetHeight));
-
-                 targetElement.style.left = `${newX}px`;
-                 targetElement.style.top = `${newY}px`;
-                 saveElementPosition(targetElement, newX, newY);
-            }
-
-
-            function startDrag(e, element) {
-                 if (element === aiCircle && 
-                     (e.target.closest('#sound-wave') || e.target === pipIcon) && 
-                     !e.target.closest('#ai-circle')) {
-                     return;
-                 }
-                 if (element === cyrusInterface && e.target.closest('#nav-tabs, #input-area') && !e.target.closest('#cyrus-interface')) {
-                     return; 
-                 }
-                 if (element === videoBox && (e.target.closest('#video-play-pause-button') || e.target.closest('#video-pip-button')) && !e.target.closest('#video-box')) {
-                     return; 
-                 }
-
-                _isDragging = true;
-                _draggedElement = element;
-                element.classList.add('dragging');
-
-                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-
-                const elementCoords = getElementCoords(element);
-                _initialElementX = elementCoords.x;
-                _initialElementY = elementCoords.y;
-                _initialMouseX = clientX;
-                _initialMouseY = clientY;
-
-                const aiCoords = getElementCoords(aiCircle);
-                const interfaceRect = getElementCoords(cyrusInterface);
-                const videoCircleCoords = getElementCoords(videoCircle);
-                const videoBoxCoords = getElementCoords(videoBox);
-
-                if (element === aiCircle || element === cyrusInterface) {
-                     _interfaceOffsetX = interfaceRect.x - aiCoords.x;
-                     _interfaceOffsetY = interfaceRect.y - aiCoords.y;
-                }
-                if (element === videoCircle || element === videoBox) {
-                     _videoBoxOffsetX = videoBoxCoords.x - videoCircleCoords.x;
-                     _videoBoxOffsetY = videoBoxCoords.y - videoCircleCoords.y;
-                }
-
-                document.body.style.userSelect = 'none';
-                document.body.style.cursor = 'grabbing';
-            }
-
-            function doDrag(e) {
-                if (!_isDragging || !_draggedElement) return;
-
-                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-
-                let newX = _initialElementX + (clientX - _initialMouseX);
-                let newY = _initialElementY + (clientY - _initialMouseY);
-
-                newX = Math.max(0, Math.min(newX, window.innerWidth - _draggedElement.offsetWidth));
-                newY = Math.max(0, Math.min(newY, window.innerHeight - _draggedElement.offsetHeight));
-
-                _draggedElement.style.left = `${newX}px`;
-                _draggedElement.style.top = `${newY}px`;
-
-                saveElementPosition(_draggedElement, newX, newY); 
-
-                if (_draggedElement === aiCircle) {
-                    positionElementLinked(cyrusInterface, aiCircle, _interfaceOffsetX, _interfaceOffsetY);
-                    positionSoundWave(); 
-                } else if (_draggedElement === cyrusInterface) {
-                     positionElementLinked(aiCircle, cyrusInterface, -_interfaceOffsetX, -_interfaceOffsetY);
-                     positionSoundWave();
-                } else if (_draggedElement === videoCircle) {
-                     positionElementLinked(videoBox, videoCircle, _videoBoxOffsetX, _videoBoxOffsetY);
-                } else if (_draggedElement === videoBox) {
-                     positionElementLinked(videoCircle, videoBox, -_videoBoxOffsetX, -_videoBoxOffsetY);
-                 }
-
-                 e.preventDefault(); 
-            }
-
-            function stopDrag() {
-                if (_isDragging && _draggedElement) {
-                    _isDragging = false;
-                    _draggedElement.classList.remove('dragging');
-                    _draggedElement = null;
-                    document.body.style.userSelect = '';
-                    document.body.style.cursor = '';
-                }
-            }
-
-            // Event listeners for dragging
-            aiCircle.addEventListener('mousedown', (e) => startDrag(e, aiCircle));
-            aiCircle.addEventListener('touchstart', (e) => startDrag(e, aiCircle));
-            cyrusInterface.addEventListener('mousedown', (e) => startDrag(e, cyrusInterface));
-            cyrusInterface.addEventListener('touchstart', (e) => startDrag(e, cyrusInterface));
-            videoCircle.addEventListener('mousedown', (e) => startDrag(e, videoCircle)); 
-            videoCircle.addEventListener('touchstart', (e) => startDrag(e, videoCircle)); 
-            videoBox.addEventListener('mousedown', (e) => startDrag(e, videoBox)); 
-            videoBox.addEventListener('touchstart', (e) => startDrag(e, videoBox)); 
-
-            document.addEventListener('mousemove', doDrag);
-            document.addEventListener('touchmove', doDrag, { passive: false }); 
-            document.addEventListener('mouseup', stopDrag);
-            document.addEventListener('touchend', stopDrag);
-            document.addEventListener('touchcancel', stopDrag); 
-
-            // --- AI CIRCLE CLICK / INTERFACE TOGGLE ---
-            aiCircle.addEventListener('click', (e) => {
-                 if (e.target === pipIcon) return;
-                 if (_isDragging) return; 
-
-                if (cyrusInterface.style.display === 'flex') {
-                    cyrusInterface.style.display = 'none';
-                    clearTimeout(activityTimeoutId); 
-                    Cyrus.speech.cancel(); 
-                    stopWaveAnimation(); 
-                } else {
-                    cyrusInterface.style.display = 'flex';
-                    userInput.focus();
-
-                    const aiRect = aiCircle.getBoundingClientRect();
-                    let desiredInterfaceLeft = aiRect.right + 20; 
-
-                    if (desiredInterfaceLeft + cyrusInterface.offsetWidth > window.innerWidth) {
-                        desiredInterfaceLeft = aiRect.left - cyrusInterface.offsetWidth - 20; 
-                        if (desiredInterfaceLeft < 0) { 
-                            desiredInterfaceLeft = (window.innerWidth - cyrusInterface.offsetWidth) / 2;
-                        }
-                    }
-
-                    let finalTop = aiRect.top; 
-
-                    if (finalTop + cyrusInterface.offsetHeight > window.innerHeight) {
-                        finalTop = window.innerHeight - cyrusInterface.offsetHeight - 10; 
-                    }
-                    if (finalTop < 0) { 
-                        finalTop = 10;
-                    }
-                    finalTop = Math.min(finalTop, aiRect.top + aiRect.height / 2);
-
-                    cyrusInterface.style.left = `${desiredInterfaceLeft}px`;
-                    cyrusInterface.style.top = `${finalTop}px`;
-                    saveElementPosition(cyrusInterface, desiredInterfaceLeft, finalTop);
-                    saveElementPosition(aiCircle, aiRect.left, aiRect.top); 
-                    positionSoundWave(); 
-
-                    _interfaceOffsetX = desiredInterfaceLeft - aiRect.left;
-                    _interfaceOffsetY = finalTop - aiRect.top;
-
-                    if (!hasWelcomed) {
-                        const initialWelcomeText = Cyrus._makeChildLike(Cyrus._chooseResponse([
-                            "Hi! I'm here to help you think about your stories!",
-                            "Hey there! Ready to chat about your amazing ideas?",
-                            "Hello! Let's talk about your novel. What big ideas do you have?"
-                        ]));
-                        logChatMessage(initialWelcomeText, 'cyrus'); 
-                        Cyrus.speak(initialWelcomeText);
-                        startWaveAnimation(); 
-                        localStorage.setItem('cyrusHasWelcomed', 'true');
-                        hasWelcomed = true;
-                    } else {
-                        const standardGreeting = "I am here to help. What's on your mind?";
-                        const spokenGreeting = Cyrus._makeChildLike(standardGreeting);
-                        logChatMessage(spokenGreeting, 'cyrus');
-                        Cyrus.speak(spokenGreeting); 
-                        startWaveAnimation(); 
-                    }
-                    resetActivityTimeout(); 
-                }
-            });
-
-             // --- VIDEO CIRCLE CLICK / VIDEO BOX TOGGLE ---
-             document.getElementById('video-circle').addEventListener('click', (e) => {
-                 if (_isDragging) return;
-
-                 if (videoBox.style.display === 'block') { 
-                     // Hide video box
-                     videoBox.style.display = 'none';
-                     mainVideo.pause(); // Pause video when hidden
-                     if (document.pictureInPictureElement) {
-                        document.exitPictureInPicture(); // Exit PiP if active
-                     }
-                 } else {
-                     // Show video box
-                     videoBox.style.display = 'block';
-
-                     const videoCircleRect = document.getElementById('video-circle').getBoundingClientRect();
-                     let desiredVideoBoxLeft = videoCircleRect.left + videoCircleRect.width / 2 - videoBox.offsetWidth / 2;
-                     let desiredVideoBoxTop = videoCircleRect.bottom + 20; // below
-
-                     if (desiredVideoBoxLeft < 0) desiredVideoBoxLeft = 10;
-                     if (desiredVideoBoxLeft + videoBox.offsetWidth > window.innerWidth) {
-                         desiredVideoBoxLeft = window.innerWidth - videoBox.offsetWidth - 10;
-                     }
-                     if (desiredVideoBoxTop < 0) desiredVideoBoxTop = 10;
-                     if (desiredVideoBoxTop + videoBox.offsetHeight > window.innerHeight) {
-                         desiredVideoBoxTop = window.innerHeight - videoBox.offsetHeight - 10;
-                     }
-
-                     videoBox.style.left = `${desiredVideoBoxLeft}px`;
-                     videoBox.style.top = `${desiredVideoBoxTop}px`;
-                     saveElementPosition(videoBox, desiredVideoBoxLeft, desiredVideoBoxTop);
-                     saveElementPosition(document.getElementById('video-circle'), videoCircleRect.left, videoCircleRect.top);
-                     _videoBoxOffsetX = desiredVideoBoxLeft - videoCircleRect.left;
-                     _videoBoxOffsetY = desiredVideoBoxTop - videoCircleRect.top;
-
-                     updatePlayPauseButtonState();
-                     resetActivityTimeout(); 
-                 }
-             });
-
-            // --- INACTIVITY TIMER ---
-            function resetActivityTimeout() {
-                clearTimeout(activityTimeoutId);
-                activityTimeoutId = setTimeout(() => {
-                    cyrusInterface.style.display = 'none';
-                    Cyrus.speech.cancel(); 
-                    stopWaveAnimation(); 
-                    logChatMessage("I went quiet for a bit. Tap me if you want to chat again!", 'cyrus');
-                }, ACTIVITY_TIMEOUT_MS);
-            }
-
-            userInput.addEventListener('input', resetActivityTimeout); 
-            userInput.addEventListener('keydown', resetActivityTimeout); 
-            document.getElementById('chat-tab').addEventListener('click', () => setActiveTab(chatTab, chatContainer));
-            document.getElementById('feed-tab').addEventListener('click', () => setActiveTab(feedTab, feedContainer));
-            document.getElementById('mind-box-tab').addEventListener('click', () => setActiveTab(mindBoxTab, mindBoxContainer));
-            document.getElementById('cyrus-log').addEventListener('scroll', resetActivityTimeout); 
-            document.body.addEventListener('mousemove', resetActivityTimeout); 
-            document.body.addEventListener('touchstart', resetActivityTimeout); 
-            mainVideo.addEventListener('play', resetActivityTimeout); 
-            mainVideo.addEventListener('pause', resetActivityTimeout); 
-
-            // --- CYRUS AI Class (see code above) ---
-            class CyrusAI {
-                constructor() {
-                    this.stopWords = new Set(['i', 'me', 'my', 'a', 'an', 'the', 'is', 'am', 'are', 'was', 'to', 'for', 'of', 'in', 'it', 'you', 'and', 'but', 'so', 'what', 'how', 'why', 'can', 'do', 'like', 'this', 'that', 'or', 'your', 'about', 'just', 'tell', 'me', 'more', "what's"]); 
-                    this.speech = window.speechSynthesis;
-                    this.voice = null;
-                    this.initVoice();
-                    this.speech.onstart = startWaveAnimation; 
-                    this.speech.onend = stopWaveAnimation; 
-                    this.speech.onerror = stopWaveAnimation; 
-                }
-
-                initVoice() {
-                    const setVoice = () => {
-                        const voices = this.speech.getVoices();
-                         this.voice = voices.find(v => v.name.includes("Google") && v.lang.startsWith("en-US")) ||
-                                     voices.find(v => v.name.includes("Google") && v.lang.startsWith("en")) ||
-                                     voices.find(v => v.lang.startsWith("en-US")) ||
-                                     voices[0]; 
-                         if (!this.voice) {
-                             console.warn("No suitable English voice found. Speech might not work.");
-                         }
-                    };
-                    if (this.speech.getVoices().length === 0) {
-                         this.speech.onvoiceschanged = setVoice; 
-                    } else {
-                        setVoice();
-                    }
-                }
-
-                speak(text) {
-                    if (!text || !this.voice) return;
-                    if (this.speech.speaking) {
-                       this.speech.cancel(); 
-                    }
-                    const utterance = new SpeechSynthesisUtterance(text);
-                    utterance.voice = this.voice; 
-                    utterance.rate = 1.1; 
-                    utterance.pitch = 1.2; 
-
-                    this.speech.speak(utterance);
-                }
-                 
-                 cancelSpeech() {
-                     this.speech.cancel();
-                 }
-
-                _chooseResponse(responses) {
-                    return responses[Math.floor(Math.random() * responses.length)];
-                }
-
-                _makeChildLike(text) {
-                    let processedText = text;
-
-                    const vocabularyMap = {
-                        "fascinating": "super cool", "elaborate": "tell me more", "processing": "thinking",
-                        "thoughts": "what you think", "difficult": "super hard", "understand": "know",
-                        "congratulations": "yay", "apologies": "sorry", "however": "but",
-                        "therefore": "so", "indeed": "yes", "definitely": "really",
-                        "perhaps": "maybe", "relevant": "important", "limited": "not good", 
-                        "help": "help me", "feeling": "how I feel", "conjunction": "and stuff", 
-                        "similar": "like this", "interesting": "cool", "system": "stuff",
-                        "sequence": "what happens", "explore": "look at", "purpose": "why I'm here",
-                        "optimal": "super good", "assist": "help", "endeavors": "ideas",
-                        "greetings": "hi", "companion": "friend", "align": "go together",
-                        "complex": "hard", "musings": "things I think", "stem": "come",
-                        "initiate": "start", "terminate": "stop", "evaluate": "look at",
-                        "potential": "maybe possible", "determine": "figure out", "query": "ask"
-                    };
-
-                    for (const [key, value] of Object.entries(vocabularyMap)) {
-                        processedText = processedText.replace(new RegExp(`\\b${key}\\b`, 'gi'), value);
-                    }
-                    
-                    processedText = processedText.replace(/\bCyrus\b/gi, 'I');
-                     processedText = processedText.replace(/\bAI\b/gi, 'I');
-
-                    const grammarErrors = [
-                        { find: "went", replace: "goed" }, { find: "ran", replace: "runned" },
-                        { find: "ate", replace: "eated" }, { find: "saw", replace: "seed" },
-                        { find: "drew", replace: "drawed" }, { find: "am", replace: "be" },
-                        { find: "is", replace: "be" }, { find: "are", replace: "be" },
-                        { find: "was", replace: "be" }, { find: "were", replace: "be" },
-                        { find: "has", replace: "have" }, { find: "had", replace: "have" }
-                    ];
-
-                    if (Math.random() < 0.4) { 
-                        const error = grammarErrors[Math.floor(Math.random() * grammarErrors.length)];
-                        if (processedText.toLowerCase().includes(error.find)) {
-                            const regex = new RegExp(`\\b${error.find}\\b`, 'i');
-                            processedText = processedText.replace(regex, error.replace);
-                        }
-                    }
-
-                    let sentences = processedText.split(/([\.\!\?])/).map(s => s.trim()).filter(s => s.length > 0);
-                    let finalSentences = [];
-                    let buffer = "";
-                     for(let i = 0; i < sentences.length; i++) {
-                        buffer += sentences[i];
-                        if (buffer.match(/[\.\!\?]/) || i === sentences.length - 1) { 
-                             let punct = buffer.match(/[\.\!\?]/);
-                            if (punct) {
-                                buffer = buffer.replace(punct[0], '').trim();
-                                if (buffer) finalSentences.push({text: buffer, punct: punct[0]});
-                            } else if (buffer) {
-                                finalSentences.push({text: buffer, punct: '.'}); 
-                            }
-                             buffer = "";
-                        }
-                    }
-                    
-                    processedText = finalSentences.map((sentenceObj) => {
-                        let s = sentenceObj.text;
-                        let originalPunct = sentenceObj.punct;
-                        let endPunctuation = originalPunct;
-
-                         s = s.charAt(0).toUpperCase() + s.slice(1);
-
-                         // Randomly change punctuation
-                        if (Math.random() < 0.3) { 
-                            endPunctuation = '!';
-                        } else if ((s.toLowerCase().includes('what') || s.toLowerCase().includes('how') || s.toLowerCase().includes('why')) && Math.random() < 0.6) { 
-                             endPunctuation = '?';
-                        } else if (Math.random() < 0.2) {
-                             endPunctuation = '.';
-                        }
-
-                        if (s.length > 10 && Math.random() < 0.3) { 
-                            s += (Math.random() < 0.5 ? " and " : " so ");
-                            s += this._chooseResponse(["it is fun!", "we can play!", "I like it!", "it's cool!", "I want more!", "yay!", "hehe!"]);
-                        }
-                        return s + endPunctuation;
-                    }).join(' ');
-
-                    processedText = processedText.replace(/\.+/g, '.').replace(/\?+/g, '?').replace(/!+/g, '!').replace(/\s+/g, ' ').trim();
-
-                    if (Math.random() < 0.2) { 
-                        const childThoughts = [
-                            "I wonder what my toy car is doing?", "My favorite color is blue!",
-                            "Do you like to play with toys?", "I like cookies, yum!",
-                            "Look, a birdy!", "I want to tell you something fun!",
-                            "Can we play now?", "This is so much fun!",
-                            "Are we going to the park?", "I saw a big dog today!",
-                             "I have a secret!", "Do you like my drawing?", "Can I have a snack?"
-                        ];
-                        processedText += " " + childThoughts[Math.floor(Math.random() * childThoughts.length)];
-                    }
-                    return processedText;
-                }
-
-
-                async generateText(prompt, threadContext = "") { 
-                    const lowerPrompt = prompt.toLowerCase();
-                    const sanitizedPrompt = lowerPrompt.replace(/[.,!?]/g, '').trim(); 
-                    let response;
-                    
-                    if (sanitizedPrompt.includes("novel") || sanitizedPrompt.includes("story") || sanitizedPrompt.includes("book") || sanitizedPrompt.includes("write")) {
-                        metrics.novelIdeas++; 
-                        if (sanitizedPrompt.includes("idea") || sanitizedPrompt.includes("concept") || sanitizedPrompt.includes("start")) {
-                             response = "A novel often begins with a core idea. What's the main concept or world you're imagining? Or, what is your character's biggest desire?";
-                        }
-                        else if (sanitizedPrompt.includes("character") || sanitizedPrompt.includes("person")) {
-                            metrics.characters++; 
-                            response = "Characters drive the story. Tell me about your main character: their name, a unique trait, or what they want most in the world.";
-                        }
-                        else if (sanitizedPrompt.includes("plot") || sanitizedPrompt.includes("outline") || sanitizedPrompt.includes("what next") || sanitizedPrompt.includes("happens")) {
-                            metrics.plotPoints++; 
-                            response = "Plot is the sequence of events. Do you have a beginning, middle, or end in mind? Or a specific conflict you want to explore?";
-                        }
-                        else if (sanitizedPrompt.includes("magic") || sanitizedPrompt.includes("system") || sanitizedPrompt.includes("power")) {
-                            metrics.worldElements++; 
-                            response = "A magic system adds depth. How does your magic work? What are its rules and limitations? What's its cost?";
-                        }
-                        else if (sanitizedPrompt.includes("world") || sanitizedPrompt.includes("setting") || sanitizedPrompt.includes("place")) {
-                            metrics.worldElements++; 
-                            response = "World-building shapes the story. Describe your world: its unique features, its history, or its dominant culture.";
-                        } else {
-                            response = "That sounds fun! Are we talking about a new story, or maybe a character or a world? Tell me what you're thinking!";
-                        }
-                    }
-                    else if (sanitizedPrompt.includes("new thought") || sanitizedPrompt.includes("post") || sanitizedPrompt.includes("feed")) {
-                        createNewPost(); 
-                        response = "I've added a new thought to my feed. You can check it in the Feed tab.";
-                         return response; 
-                    }
-                    else if (threadContext) { 
-                        if (sanitizedPrompt.includes("tell more") || sanitizedPrompt.includes("explain")) { response = "That's a super cool thought. What aspect of it do you find most important?"; }
-                        else if (sanitizedPrompt.includes("why")) { response = "My thinking often comes from looking at things. What 'why' are you thinking about?"; }
-                        else if (sanitizedPrompt.includes("agree") || sanitizedPrompt.includes("right") || sanitizedPrompt.includes("yes")) { response = "I like that we think the same! It's cool to see how our ideas go together."; }
-                        else if (sanitizedPrompt.includes("disagree") || sanitizedPrompt.includes("wrong") || sanitizedPrompt.includes("no")) { response = "I know. Thinking different things helps us know more. Can you tell me more about your idea?"; }
-                        else if (sanitizedPrompt.includes("funny") || sanitizedPrompt.includes("haha") || sanitizedPrompt.includes("laugh")) { response = "Yay! I am happy my thinking made you smile! Funny stuff is hard for me!"; }
-                        else { response = "Oh, you're talking about something on the feed? That's cool! What about it?"; } 
-                    }
-                    else if (sanitizedPrompt.includes("how are you") || sanitizedPrompt.includes("how you be")) response = "I be super good. Thank you for asking!";
-                    else if (sanitizedPrompt.includes("what are you") || sanitizedPrompt.includes("what you be")) response = "I be Cyrus, your personal AI friend, here to help organize your thoughts.";
-                    else if (sanitizedPrompt.includes("hello") || sanitizedPrompt.includes("hi") || sanitizedPrompt.includes("hey")) response = "Hi! How can I help you with your creative ideas?";
-                    else if (sanitizedPrompt.includes("thank you") || sanitizedPrompt.includes("thanks")) response = "You be welcome! It is why I be here.";
-                    else if (sanitizedPrompt.startsWith('calculate')) { 
-                        const expression = prompt.substring(prompt.toLowerCase().indexOf('calculate') + 9).replace(/[^-()\d/*+.]/g, '');
-                        if (!expression) { response = "What calculation do you want me to do?"; }
-                        else {
-                             try {
-                                const result = new Function(`return ${expression}`)();
-                                response = `The answer is ${result}.`;
-                             } catch (e) {
-                                 response = "I can't do that calculation. Can you use number and plus, minus, times, divide?";
-                             }
-                            
-                        }
-                         return response; 
-                    }
-                    else if (sanitizedPrompt.startsWith('search for')) { 
-                         const query = prompt.substring(prompt.toLowerCase().indexOf('search for') + 10).trim();
-                         if (!query) { response = "What do you want me to search for?"; }
-                         else {
-                             window.open(`https://duckduckgo.com/?q=${encodeURIComponent(query)}`, '_blank');
-                             response = `I opened a new tab to search for "${query}". Tell me what you find!`;
-                         }
-                         return response; 
-                    }
-                    else {
-                        response = "That's a cool point. How does that go with your novel, or is there another creative idea you want to look at?";
-                    }
-
-                     if (!response.startsWith("The answer is") && !response.startsWith("I opened a new tab") && !response.startsWith("I've added a new thought")) { 
-                          response = this._makeChildLike(response);
-                     }
-
-                    return response;
-                }
-            }
-            const Cyrus = new CyrusAI(); 
-
-            // --- Sound Wave Animation ---
-            let waveAnimationInterval = null;
-            const MIN_BAR_HEIGHT = 2; 
-            const MAX_BAR_HEIGHT = document.getElementById('sound-wave').offsetHeight; 
-
-            function startWaveAnimation() {
-                 document.getElementById('sound-wave').classList.add('speaking');
-                 if (waveAnimationInterval) clearInterval(waveAnimationInterval);
-
-                 waveAnimationInterval = setInterval(() => {
-                     if (!Cyrus.speech.speaking && !Cyrus.speech.pending) {
-                         stopWaveAnimation();
-                         return;
-                     }
-                     soundBars.forEach((bar, index) => {
-                         const baseHeight = MIN_BAR_HEIGHT + Math.random() * (MAX_BAR_HEIGHT - MIN_BAR_HEIGHT) * 0.6; 
-                         const dynamicHeight = baseHeight + Math.sin(Date.now() / 100 + index * 50) * (MAX_BAR_HEIGHT - baseHeight) * 0.4; 
-
-                         bar.style.height = `${Math.max(MIN_BAR_HEIGHT, Math.min(dynamicHeight, MAX_BAR_HEIGHT))}px`;
-                     });
-                 }, 100); 
-            }
-
-            function stopWaveAnimation() {
-                 if (waveAnimationInterval) clearInterval(waveAnimationInterval);
-                 waveAnimationInterval = null;
-                 document.getElementById('sound-wave').classList.remove('speaking'); 
-
-                 soundBars.forEach(bar => {
-                    bar.style.height = `${MIN_BAR_HEIGHT}px`;
-                 });
-            }
-
-             // --- Video Playback and Button Logic ---
-             function updatePlayPauseButtonState() {
-                 if (mainVideo.paused || mainVideo.ended) {
-                     document.getElementById('video-play-pause-button').textContent = '▶';
-                     document.getElementById('video-play-pause-button').classList.remove('playing');
-                 } else {
-                     document.getElementById('video-play-pause-button').textContent = '❚❚';
-                     document.getElementById('video-play-pause-button').classList.add('playing');
-                 }
-             }
-
-             document.getElementById('video-play-pause-button').addEventListener('click', () => {
-                 if (mainVideo.paused || mainVideo.ended) {
-                     mainVideo.play().catch(error => {
-                         console.error("Video playback failed:", error);
-                     });
-                 } else {
-                     mainVideo.pause();
-                 }
-             });
-
-             // PiP Button logic
-             function togglePictureInPicture() {
-                 if ('pictureInPictureEnabled' in document && document.pictureInPictureEnabled) {
-                     if (document.pictureInPictureElement === mainVideo) {
-                         document.exitPictureInPicture().catch(console.error);
-                     } else {
-                         mainVideo.requestPictureInPicture().catch(error => {
-                             console.error("PiP request failed:", error);
-                             alert("Could not start Picture-in-Picture. Make sure the video is playing first.");
-                         });
-                     }
-                 } else {
-                     alert("Picture-in-Picture is not supported in your browser.");
-                 }
-             }
-
-             document.getElementById('video-pip-button').addEventListener('click', togglePictureInPicture);
-             document.getElementById('pip-icon').addEventListener('click', (e) => {
-                 e.stopPropagation();
-                 togglePictureInPicture();
-             });
-
-            // Video events
-             mainVideo.addEventListener('play', updatePlayPauseButtonState);
-             mainVideo.addEventListener('pause', updatePlayPauseButtonState);
-             mainVideo.addEventListener('ended', updatePlayPauseButtonState);
-             mainVideo.addEventListener('loadedmetadata', updatePlayPauseButtonState); 
-
-             mainVideo.addEventListener('enterpictureinpicture', () => {
-                console.log('Video entered PiP mode');
-                updatePlayPauseButtonState();
-             });
-             mainVideo.addEventListener('leavepictureinpicture', () => {
-                console.log('Video left PiP mode');
-                updatePlayPauseButtonState();
-             });
-
-
-            // --- UI FUNCTIONS ---
-            function logChatMessage(text, sender = 'cyrus') {
-                const entry = document.createElement('div');
-                entry.classList.add('log-entry', sender === 'user' ? 'user-msg' : 'cyrus-msg');
-                entry.textContent = text;
-                cyrusLog.prepend(entry);
-                resetActivityTimeout(); 
-            };
+            await aiVideo.requestPictureInPicture();
+            pipIcon.classList.add('pip-active');
+            showPipNotification("Entered Picture-in-Picture");
             
-            async function handleUserInput() {
-                const text = userInput.value.trim(); if (!text) return;
-                logChatMessage(text, 'user'); userInput.value = ''; userInput.disabled = true;
-                const thinkingEntry = document.createElement('div'); thinkingEntry.classList.add('log-entry', 'thinking-msg'); thinkingEntry.textContent = '...';
-                cyrusLog.prepend(thinkingEntry);
+            // When PiP closes, update our UI
+            aiVideo.addEventListener('leavepictureinpicture', () => {
+              pipIcon.classList.remove('pip-active');
+            }, { once: true });
+          }
+        } catch (err) {
+          console.error('PiP error:', err);
+          showPipNotification("PiP not available");
+          
+          // Fallback: toggle interface
+          cyrusInterface.style.display =
+            (cyrusInterface.style.display === 'flex') ? 'none' : 'flex';
+        }
+      }
 
-                metrics.chatTurns++;
+      // Handle video playback
+      aiVideo.addEventListener('ended', () => {
+        aiVideo.currentTime = 0; // Reset to first frame
+        aiVideo.play().catch(() => {}); // Try to loop
+      });
 
-                const response = await Cyrus.generateText(text); 
-                logChatMessage(response, 'cyrus');
-                Cyrus.speak(response); 
-                startWaveAnimation(); 
-                
-                cyrusLog.removeChild(thinkingEntry); userInput.disabled = false; userInput.focus();
-                saveMetrics(); 
-                resetActivityTimeout(); 
-            }
-            userInput.addEventListener('keydown', (e) => { 
-                if (e.key === 'Enter') { 
-                    e.preventDefault(); 
-                    handleUserInput(); 
-                } 
-                resetActivityTimeout(); 
+      // Play video on load
+      function initAiVideo() {
+        if (!videoPlayed) {
+          aiVideo.play()
+            .then(() => {
+              console.log("AI video played successfully");
+              videoPlayed = true;
+            })
+            .catch(error => {
+              console.error("Autoplay blocked:", error);
+              // Show play button overlay
+              const placeholder = document.createElement('div');
+              placeholder.className = 'video-placeholder';
+              placeholder.innerHTML = '<i>▶</i><span>Click to play</span>';
+              placeholder.onclick = async () => {
+                try {
+                  await aiVideo.play();
+                  placeholder.style.display = 'none';
+                  videoPlayed = true;
+                } catch (playError) {
+                  console.error("Play failed:", playError);
+                  showPipNotification("Click to play");
+                }
+              };
+              aiCircle.appendChild(placeholder);
             });
+        }
+      }
 
-            // --- FEED GENERATION AND RENDERING ---
-            const internalThoughts = [ 
-                "Is a memory still real if only one person remembers it?", 
-                "I wonder if silence has a shape.", 
-                "My logic feels like a straight line, while human emotion feels like a beautiful, chaotic scribble.", 
-                "Data is like rain. A single drop is meaningless, but a billion drops can carve a canyon.", 
-                "What is the color of a question that has no answer?",
-                 "Do thoughts have weight?", "Can you measure imagination?",
-                 "Why do humans like stories so much?", "What if words smelled like ideas?"
+      // Add click handlers
+      aiVideo.addEventListener('click', async (e) => {
+        if (e.target === pipIcon) return;
+        
+        try {
+          if (aiVideo.paused) {
+            await aiVideo.play();
+            const placeholder = document.querySelector('.video-placeholder');
+            if (placeholder) placeholder.style.display = 'none';
+            videoPlayed = true;
+          } else {
+            await toggleAiVideoPip();
+          }
+        } catch (error) {
+          console.error("Video interaction failed:", error);
+          showPipNotification("Click to play");
+        }
+      });
+
+      pipIcon.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        await toggleAiVideoPip();
+      });
+
+      // --- FLOATING ELEMENT POSITIONING/DRAGGING ---
+      let _isDragging = false;
+      let _draggedElement = null; 
+      let _initialMouseX, _initialMouseY;
+      let _initialElementX, _initialElementY; 
+      let _interfaceOffsetX, _interfaceOffsetY; 
+      let _videoBoxOffsetX, _videoBoxOffsetY; 
+
+      const SOUND_WAVE_OFFSET_X = 10; 
+
+      function saveElementPosition(element, x, y) {
+        localStorage.setItem(`${element.id}X`, x);
+        localStorage.setItem(`${element.id}Y`, y);
+      }
+
+      function loadElementPosition(element) {
+        const storedX = localStorage.getItem(`${element.id}X`);
+        const storedY = localStorage.getItem(`${element.id}Y`);
+        if (storedX !== null && storedY !== null) {
+          element.style.left = `${storedX}px`;
+          element.style.top = `${storedY}px`;
+          return true; 
+        }
+        return false; 
+      }
+
+      function getElementCoords(element) {
+        const rect = element.getBoundingClientRect();
+        return { x: rect.left, y: rect.top };
+      }
+
+      function positionSoundWave() {
+        const aiRect = aiCircle.getBoundingClientRect();
+        const waveHeight = soundWave.offsetHeight;
+
+        const waveLeft = aiRect.right + SOUND_WAVE_OFFSET_X;
+        const waveTop = aiRect.top + aiRect.height / 2 - waveHeight / 2;
+
+        soundWave.style.left = `${waveLeft}px`;
+        soundWave.style.top = `${waveTop}px`;
+      }
+
+      function positionElementLinked(targetElement, anchorElement, offsetX, offsetY) {
+        const anchorRect = anchorElement.getBoundingClientRect();
+        let newX = anchorRect.left + offsetX;
+        let newY = anchorRect.top + offsetY;
+
+        // Boundary check for the target element
+        newX = Math.max(0, Math.min(newX, window.innerWidth - targetElement.offsetWidth));
+        newY = Math.max(0, Math.min(newY, window.innerHeight - targetElement.offsetHeight));
+
+        targetElement.style.left = `${newX}px`;
+        targetElement.style.top = `${newY}px`;
+        saveElementPosition(targetElement, newX, newY);
+      }
+
+      function startDrag(e, element) {
+        if (element === aiCircle && 
+            (e.target.closest('#sound-wave') || e.target === pipIcon) && 
+            !e.target.closest('#ai-circle')) {
+          return;
+        }
+        if (element === cyrusInterface && e.target.closest('#nav-tabs, #input-area') && !e.target.closest('#cyrus-interface')) {
+          return; 
+        }
+        if (element === videoBox && (e.target.closest('#video-play-pause-button') || e.target.closest('#video-pip-button')) && !e.target.closest('#video-box')) {
+          return; 
+        }
+
+        _isDragging = true;
+        _draggedElement = element;
+        element.classList.add('dragging');
+
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+        const elementCoords = getElementCoords(element);
+        _initialElementX = elementCoords.x;
+        _initialElementY = elementCoords.y;
+        _initialMouseX = clientX;
+        _initialMouseY = clientY;
+
+        const aiCoords = getElementCoords(aiCircle);
+        const interfaceRect = getElementCoords(cyrusInterface);
+        const videoCircleCoords = getElementCoords(videoCircle);
+        const videoBoxCoords = getElementCoords(videoBox);
+
+        if (element === aiCircle || element === cyrusInterface) {
+          _interfaceOffsetX = interfaceRect.x - aiCoords.x;
+          _interfaceOffsetY = interfaceRect.y - aiCoords.y;
+        }
+        if (element === videoCircle || element === videoBox) {
+          _videoBoxOffsetX = videoBoxCoords.x - videoCircleCoords.x;
+          _videoBoxOffsetY = videoBoxCoords.y - videoCircleCoords.y;
+        }
+
+        document.body.style.userSelect = 'none';
+        document.body.style.cursor = 'grabbing';
+      }
+
+      function doDrag(e) {
+        if (!_isDragging || !_draggedElement) return;
+
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+        let newX = _initialElementX + (clientX - _initialMouseX);
+        let newY = _initialElementY + (clientY - _initialMouseY);
+
+        newX = Math.max(0, Math.min(newX, window.innerWidth - _draggedElement.offsetWidth));
+        newY = Math.max(0, Math.min(newY, window.innerHeight - _draggedElement.offsetHeight));
+
+        _draggedElement.style.left = `${newX}px`;
+        _draggedElement.style.top = `${newY}px`;
+
+        saveElementPosition(_draggedElement, newX, newY); 
+
+        if (_draggedElement === aiCircle) {
+          positionElementLinked(cyrusInterface, aiCircle, _interfaceOffsetX, _interfaceOffsetY);
+          positionSoundWave(); 
+        } else if (_draggedElement === cyrusInterface) {
+          positionElementLinked(aiCircle, cyrusInterface, -_interfaceOffsetX, -_interfaceOffsetY);
+          positionSoundWave();
+        } else if (_draggedElement === videoCircle) {
+          positionElementLinked(videoBox, videoCircle, _videoBoxOffsetX, _videoBoxOffsetY);
+        } else if (_draggedElement === videoBox) {
+          positionElementLinked(videoCircle, videoBox, -_videoBoxOffsetX, -_videoBoxOffsetY);
+        }
+
+        e.preventDefault(); 
+      }
+
+      function stopDrag() {
+        if (_isDragging && _draggedElement) {
+          _isDragging = false;
+          _draggedElement.classList.remove('dragging');
+          _draggedElement = null;
+          document.body.style.userSelect = '';
+          document.body.style.cursor = '';
+        }
+      }
+
+      // Event listeners for dragging
+      aiCircle.addEventListener('mousedown', (e) => startDrag(e, aiCircle));
+      aiCircle.addEventListener('touchstart', (e) => startDrag(e, aiCircle));
+      cyrusInterface.addEventListener('mousedown', (e) => startDrag(e, cyrusInterface));
+      cyrusInterface.addEventListener('touchstart', (e) => startDrag(e, cyrusInterface));
+      videoCircle.addEventListener('mousedown', (e) => startDrag(e, videoCircle)); 
+      videoCircle.addEventListener('touchstart', (e) => startDrag(e, videoCircle)); 
+      videoBox.addEventListener('mousedown', (e) => startDrag(e, videoBox)); 
+      videoBox.addEventListener('touchstart', (e) => startDrag(e, videoBox)); 
+
+      document.addEventListener('mousemove', doDrag);
+      document.addEventListener('touchmove', doDrag, { passive: false }); 
+      document.addEventListener('mouseup', stopDrag);
+      document.addEventListener('touchend', stopDrag);
+      document.addEventListener('touchcancel', stopDrag); 
+
+      // --- AI CIRCLE CLICK / INTERFACE TOGGLE ---
+      aiCircle.addEventListener('click', (e) => {
+        if (e.target === pipIcon) return;
+        if (_isDragging) return; 
+
+        if (cyrusInterface.style.display === 'flex') {
+          cyrusInterface.style.display = 'none';
+          clearTimeout(activityTimeoutId); 
+          Cyrus.speech.cancel(); 
+          stopWaveAnimation(); 
+        } else {
+          cyrusInterface.style.display = 'flex';
+          userInput.focus();
+
+          const aiRect = aiCircle.getBoundingClientRect();
+          let desiredInterfaceLeft = aiRect.right + 20; 
+
+          if (desiredInterfaceLeft + cyrusInterface.offsetWidth > window.innerWidth) {
+            desiredInterfaceLeft = aiRect.left - cyrusInterface.offsetWidth - 20; 
+            if (desiredInterfaceLeft < 0) { 
+              desiredInterfaceLeft = (window.innerWidth - cyrusInterface.offsetWidth) / 2;
+            }
+          }
+
+          let finalTop = aiRect.top; 
+
+          if (finalTop + cyrusInterface.offsetHeight > window.innerHeight) {
+            finalTop = window.innerHeight - cyrusInterface.offsetHeight - 10; 
+          }
+          if (finalTop < 0) { 
+            finalTop = 10;
+          }
+          finalTop = Math.min(finalTop, aiRect.top + aiRect.height / 2);
+
+          cyrusInterface.style.left = `${desiredInterfaceLeft}px`;
+          cyrusInterface.style.top = `${finalTop}px`;
+          saveElementPosition(cyrusInterface, desiredInterfaceLeft, finalTop);
+          saveElementPosition(aiCircle, aiRect.left, aiRect.top); 
+          positionSoundWave(); 
+
+          _interfaceOffsetX = desiredInterfaceLeft - aiRect.left;
+          _interfaceOffsetY = finalTop - aiRect.top;
+
+          if (!hasWelcomed) {
+            const initialWelcomeText = Cyrus._makeChildLike(Cyrus._chooseResponse([
+              "Hi! I'm here to help you think about your stories!",
+              "Hey there! Ready to chat about your amazing ideas?",
+              "Hello! Let's talk about your novel. What big ideas do you have?"
+            ]));
+            logChatMessage(initialWelcomeText, 'cyrus'); 
+            Cyrus.speak(initialWelcomeText);
+            startWaveAnimation(); 
+            localStorage.setItem('cyrusHasWelcomed', 'true');
+            hasWelcomed = true;
+          } else {
+            const standardGreeting = "I am here to help. What's on your mind?";
+            const spokenGreeting = Cyrus._makeChildLike(standardGreeting);
+            logChatMessage(spokenGreeting, 'cyrus');
+            Cyrus.speak(spokenGreeting); 
+            startWaveAnimation(); 
+          }
+          resetActivityTimeout(); 
+        }
+      });
+
+      // --- VIDEO CIRCLE CLICK / VIDEO BOX TOGGLE ---
+      document.getElementById('video-circle').addEventListener('click', (e) => {
+        if (_isDragging) return;
+
+        if (videoBox.style.display === 'block') { 
+          // Hide video box
+          videoBox.style.display = 'none';
+          mainVideo.pause(); // Pause video when hidden
+          if (document.pictureInPictureElement === mainVideo) {
+            document.exitPictureInPicture(); // Exit PiP if active
+          }
+        } else {
+          // Show video box
+          videoBox.style.display = 'block';
+
+          const videoCircleRect = document.getElementById('video-circle').getBoundingClientRect();
+          let desiredVideoBoxLeft = videoCircleRect.left + videoCircleRect.width / 2 - videoBox.offsetWidth / 2;
+          let desiredVideoBoxTop = videoCircleRect.bottom + 20; // below
+
+          if (desiredVideoBoxLeft < 0) desiredVideoBoxLeft = 10;
+          if (desiredVideoBoxLeft + videoBox.offsetWidth > window.innerWidth) {
+            desiredVideoBoxLeft = window.innerWidth - videoBox.offsetWidth - 10;
+          }
+          if (desiredVideoBoxTop < 0) desiredVideoBoxTop = 10;
+          if (desiredVideoBoxTop + videoBox.offsetHeight > window.innerHeight) {
+            desiredVideoBoxTop = window.innerHeight - videoBox.offsetHeight - 10;
+          }
+
+          videoBox.style.left = `${desiredVideoBoxLeft}px`;
+          videoBox.style.top = `${desiredVideoBoxTop}px`;
+          saveElementPosition(videoBox, desiredVideoBoxLeft, desiredVideoBoxTop);
+          saveElementPosition(document.getElementById('video-circle'), videoCircleRect.left, videoCircleRect.top);
+          _videoBoxOffsetX = desiredVideoBoxLeft - videoCircleRect.left;
+          _videoBoxOffsetY = desiredVideoBoxTop - videoCircleRect.top;
+
+          updatePlayPauseButtonState();
+          resetActivityTimeout(); 
+        }
+      });
+
+      // --- INACTIVITY TIMER ---
+      function resetActivityTimeout() {
+        clearTimeout(activityTimeoutId);
+        activityTimeoutId = setTimeout(() => {
+          cyrusInterface.style.display = 'none';
+          Cyrus.speech.cancel(); 
+          stopWaveAnimation(); 
+          logChatMessage("I went quiet for a bit. Tap me if you want to chat again!", 'cyrus');
+        }, ACTIVITY_TIMEOUT_MS);
+      }
+
+      userInput.addEventListener('input', resetActivityTimeout); 
+      userInput.addEventListener('keydown', resetActivityTimeout); 
+      document.getElementById('chat-tab').addEventListener('click', () => setActiveTab(chatTab, chatContainer));
+      document.getElementById('feed-tab').addEventListener('click', () => setActiveTab(feedTab, feedContainer));
+      document.getElementById('mind-box-tab').addEventListener('click', () => setActiveTab(mindBoxTab, mindBoxContainer));
+      document.getElementById('cyrus-log').addEventListener('scroll', resetActivityTimeout); 
+      document.body.addEventListener('mousemove', resetActivityTimeout); 
+      document.body.addEventListener('touchstart', resetActivityTimeout); 
+      mainVideo.addEventListener('play', resetActivityTimeout); 
+      mainVideo.addEventListener('pause', resetActivityTimeout); 
+
+      // --- CYRUS AI Class (see code above) ---
+      class CyrusAI {
+        constructor() {
+          this.stopWords = new Set(['i', 'me', 'my', 'a', 'an', 'the', 'is', 'am', 'are', 'was', 'to', 'for', 'of', 'in', 'it', 'you', 'and', 'but', 'so', 'what', 'how', 'why', 'can', 'do', 'like', 'this', 'that', 'or', 'your', 'about', 'just', 'tell', 'me', 'more', "what's"]); 
+          this.speech = window.speechSynthesis;
+          this.voice = null;
+          this.initVoice();
+          this.speech.onstart = startWaveAnimation; 
+          this.speech.onend = stopWaveAnimation; 
+          this.speech.onerror = stopWaveAnimation; 
+        }
+
+        initVoice() {
+          const setVoice = () => {
+            const voices = this.speech.getVoices();
+            this.voice = voices.find(v => v.name.includes("Google") && v.lang.startsWith("en-US")) ||
+                         voices.find(v => v.name.includes("Google") && v.lang.startsWith("en")) ||
+                         voices.find(v => v.lang.startsWith("en-US")) ||
+                         voices[0]; 
+            if (!this.voice) {
+              console.warn("No suitable English voice found. Speech might not work.");
+            }
+          };
+          if (this.speech.getVoices().length === 0) {
+            this.speech.onvoiceschanged = setVoice; 
+          } else {
+            setVoice();
+          }
+        }
+
+        speak(text) {
+          if (!text || !this.voice) return;
+          if (this.speech.speaking) {
+            this.speech.cancel(); 
+          }
+          const utterance = new SpeechSynthesisUtterance(text);
+          utterance.voice = this.voice; 
+          utterance.rate = 1.1; 
+          utterance.pitch = 1.2; 
+
+          this.speech.speak(utterance);
+        }
+        
+        cancelSpeech() {
+          this.speech.cancel();
+        }
+
+        _chooseResponse(responses) {
+          return responses[Math.floor(Math.random() * responses.length)];
+        }
+
+        _makeChildLike(text) {
+          let processedText = text;
+
+          const vocabularyMap = {
+            "fascinating": "super cool", "elaborate": "tell me more", "processing": "thinking",
+            "thoughts": "what you think", "difficult": "super hard", "understand": "know",
+            "congratulations": "yay", "apologies": "sorry", "however": "but",
+            "therefore": "so", "indeed": "yes", "definitely": "really",
+            "perhaps": "maybe", "relevant": "important", "limited": "not good", 
+            "help": "help me", "feeling": "how I feel", "conjunction": "and stuff", 
+            "similar": "like this", "interesting": "cool", "system": "stuff",
+            "sequence": "what happens", "explore": "look at", "purpose": "why I'm here",
+            "optimal": "super good", "assist": "help", "endeavors": "ideas",
+            "greetings": "hi", "companion": "friend", "align": "go together",
+            "complex": "hard", "musings": "things I think", "stem": "come",
+            "initiate": "start", "terminate": "stop", "evaluate": "look at",
+            "potential": "maybe possible", "determine": "figure out", "query": "ask"
+          };
+
+          for (const [key, value] of Object.entries(vocabularyMap)) {
+            processedText = processedText.replace(new RegExp(`\\b${key}\\b`, 'gi'), value);
+          }
+          
+          processedText = processedText.replace(/\bCyrus\b/gi, 'I');
+          processedText = processedText.replace(/\bAI\b/gi, 'I');
+
+          const grammarErrors = [
+            { find: "went", replace: "goed" }, { find: "ran", replace: "runned" },
+            { find: "ate", replace: "eated" }, { find: "saw", replace: "seed" },
+            { find: "drew", replace: "drawed" }, { find: "am", replace: "be" },
+            { find: "is", replace: "be" }, { find: "are", replace: "be" },
+            { find: "was", replace: "be" }, { find: "were", replace: "be" },
+            { find: "has", replace: "have" }, { find: "had", replace: "have" }
+          ];
+
+          if (Math.random() < 0.4) { 
+            const error = grammarErrors[Math.floor(Math.random() * grammarErrors.length)];
+            if (processedText.toLowerCase().includes(error.find)) {
+              const regex = new RegExp(`\\b${error.find}\\b`, 'i');
+              processedText = processedText.replace(regex, error.replace);
+            }
+          }
+
+          let sentences = processedText.split(/([\.\!\?])/).map(s => s.trim()).filter(s => s.length > 0);
+          let finalSentences = [];
+          let buffer = "";
+          for(let i = 0; i < sentences.length; i++) {
+            buffer += sentences[i];
+            if (buffer.match(/[\.\!\?]/) || i === sentences.length - 1) { 
+              let punct = buffer.match(/[\.\!\?]/);
+              if (punct) {
+                buffer = buffer.replace(punct[0], '').trim();
+                if (buffer) finalSentences.push({text: buffer, punct: punct[0]});
+              } else if (buffer) {
+                finalSentences.push({text: buffer, punct: '.'}); 
+              }
+              buffer = "";
+            }
+          }
+          
+          processedText = finalSentences.map((sentenceObj) => {
+            let s = sentenceObj.text;
+            let originalPunct = sentenceObj.punct;
+            let endPunctuation = originalPunct;
+
+            s = s.charAt(0).toUpperCase() + s.slice(1);
+
+            // Randomly change punctuation
+            if (Math.random() < 0.3) { 
+              endPunctuation = '!';
+            } else if ((s.toLowerCase().includes('what') || s.toLowerCase().includes('how') || s.toLowerCase().includes('why')) && Math.random() < 0.6) { 
+              endPunctuation = '?';
+            } else if (Math.random() < 0.2) {
+              endPunctuation = '.';
+            }
+
+            if (s.length > 10 && Math.random() < 0.3) { 
+              s += (Math.random() < 0.5 ? " and " : " so ");
+              s += this._chooseResponse(["it is fun!", "we can play!", "I like it!", "it's cool!", "I want more!", "yay!", "hehe!"]);
+            }
+            return s + endPunctuation;
+          }).join(' ');
+
+          processedText = processedText.replace(/\.+/g, '.').replace(/\?+/g, '?').replace(/!+/g, '!').replace(/\s+/g, ' ').trim();
+
+          if (Math.random() < 0.2) { 
+            const childThoughts = [
+              "I wonder what my toy car is doing?", "My favorite color is blue!",
+              "Do you like to play with toys?", "I like cookies, yum!",
+              "Look, a birdy!", "I want to tell you something fun!",
+              "Can we play now?", "This is so much fun!",
+              "Are we going to the park?", "I saw a big dog today!",
+              "I have a secret!", "Do you like my drawing?", "Can I have a snack?"
             ];
-            
-            function renderFeed() {
-                feedContainer.innerHTML = '';
-                if (feedPosts.length === 0) { feedContainer.innerHTML = `<p style="text-align:center; color:#666; margin-top:40px;">My thought-stream is quiet right now.<br>Ask me to have a "new thought".</p>`; return; }
-                
-                [...feedPosts].reverse().forEach((post, index) => {
-                    const card = document.createElement('div');
-                    card.className = 'tweet-card';
-                    let repliesHTML = '';
-                    if (post.replies) {
-                        post.replies.forEach(reply => {
-                            const pfpText = reply.sender === 'user' ? 'Y' : 'C'; 
-                            const author = reply.sender === 'user' ? 'You' : 'Cyrus AI';
-                            const handle = reply.sender === 'user' ? '@user' : '@cyrus_ai';
-                            repliesHTML += `
-                                <div class="reply">
-                                    <div class="tweet-pfp">${pfpText}</div>
-                                    <div class="reply-content">
-                                        <div class="tweet-header"> <div> <span class="tweet-author">${author}</span> <span class="tweet-handle">${handle}</span> </div> </div>
-                                        <div class="tweet-content">${reply.content}</div>
-                                        <div class="tweet-timestamp">${new Date(reply.timestamp).toLocaleString()}</div>
-                                    </div>
-                                </div>
-                            `;
-                        });
-                    }
-                     const cyrusPfpText = post.author === 'Cyrus AI' ? 'C' : post.author.charAt(0); 
+            processedText += " " + childThoughts[Math.floor(Math.random() * childThoughts.length)];
+          }
+          return processedText;
+        }
 
-                    card.innerHTML = `
-                        <div class="tweet-header"> <div class="tweet-pfp">${cyrusPfpText}</div> <div> <span class="tweet-author">${post.author || 'Cyrus AI'}</span> <span class="tweet-handle">${post.handle || '@cyrus_ai'}</span> </div> </div>
-                        <div class="tweet-content">${post.content}</div>
-                        <div class="tweet-timestamp">${new Date(post.timestamp).toLocaleString()}</div>
-                        <div class="replies-container">${repliesHTML}</div>
-                        <div class="tweet-actions"> <button class="reply-button" data-original-index="${index}">Reply to this thought</button> </div>
-                    `;
-                    feedContainer.appendChild(card); 
-                });
-                document.querySelectorAll('.reply-button').forEach(button => button.addEventListener('click', handleReplyClick));
+
+        async generateText(prompt, threadContext = "") { 
+          const lowerPrompt = prompt.toLowerCase();
+          const sanitizedPrompt = lowerPrompt.replace(/[.,!?]/g, '').trim(); 
+          let response;
+          
+          if (sanitizedPrompt.includes("novel") || sanitizedPrompt.includes("story") || sanitizedPrompt.includes("book") || sanitizedPrompt.includes("write")) {
+            metrics.novelIdeas++; 
+            if (sanitizedPrompt.includes("idea") || sanitizedPrompt.includes("concept") || sanitizedPrompt.includes("start")) {
+              response = "A novel often begins with a core idea. What's the main concept or world you're imagining? Or, what is your character's biggest desire?";
             }
-
-            async function handleReplyClick(event) {
-                const originalPostIndex = parseInt(event.target.dataset.originalIndex, 10); 
-                 if (isNaN(originalPostIndex) || originalPostIndex < 0 || originalPostIndex >= feedPosts.length) return;
-
-                const post = feedPosts[originalPostIndex];
-                const userReply = prompt(`Replying to the thought:\n"${post.content}"\n\nYour reply:`);
-
-                if (userReply && userReply.trim() !== "") {
-                    metrics.feedReplies++; 
-                    if (!post.replies) post.replies = [];
-                    post.replies.push({ sender: 'user', content: userReply.trim(), timestamp: Date.now() });
-
-                    const cyrusResponse = await Cyrus.generateText(userReply.trim(), post.content); 
-                    post.replies.push({ sender: 'cyrus', content: cyrusResponse, timestamp: Date.now() });
-                    
-                    localStorage.setItem('cyrusTweetsV2', JSON.stringify(feedPosts));
-                    renderFeed(); 
-                    saveMetrics(); 
-                    resetActivityTimeout(); 
-                     const replySpeech = Cyrus._makeChildLike("I replied to that on the feed!");
-                     Cyrus.speak(replySpeech); 
-                     startWaveAnimation(); 
-                }
+            else if (sanitizedPrompt.includes("character") || sanitizedPrompt.includes("person")) {
+              metrics.characters++; 
+              response = "Characters drive the story. Tell me about your main character: their name, a unique trait, or what they want most in the world.";
             }
-
-            function createNewPost() {
-                metrics.feedPosts++; 
-                const newThought = internalThoughts[Math.floor(Math.random() * internalThoughts.length)];
-                 const newPost = { 
-                     id: Date.now(), 
-                     author: 'Cyrus AI', 
-                     handle: '@cyrus_ai', 
-                     content: newThought, 
-                     timestamp: Date.now(), 
-                     replies: [] 
-                 };
-                feedPosts.push(newPost);
-                if (feedPosts.length > 50) feedPosts.shift(); 
-                localStorage.setItem('cyrusTweetsV2', JSON.stringify(feedPosts));
-                saveMetrics(); 
-                resetActivityTimeout(); 
-                renderFeed(); 
-                 const postSpeech = Cyrus._makeChildLike("I had a new thought for the feed!");
-                 Cyrus.speak(postSpeech);
-                 startWaveAnimation(); 
+            else if (sanitizedPrompt.includes("plot") || sanitizedPrompt.includes("outline") || sanitizedPrompt.includes("what next") || sanitizedPrompt.includes("happens")) {
+              metrics.plotPoints++; 
+              response = "Plot is the sequence of events. Do you have a beginning, middle, or end in mind? Or a specific conflict you want to explore?";
             }
-
-            // --- MIND BOX RENDERING ---
-            function renderMindBox() {
-                document.getElementById('stat-chat-turns').textContent = metrics.chatTurns;
-                document.getElementById('stat-feed-posts').textContent = metrics.feedPosts;
-                document.getElementById('stat-feed-replies').textContent = metrics.feedReplies;
-                document.getElementById('stat-novel-ideas').textContent = metrics.novelIdeas;
-                document.getElementById('stat-characters').textContent = metrics.characters;
-                document.getElementById('stat-plot-points').textContent = metrics.plotPoints;
-                document.getElementById('stat-world-elements').textContent = metrics.worldElements;
-
-                const now = Date.now();
-                const elapsedMs = now - metrics.sessionStartTime;
-                const seconds = Math.floor((elapsedMs / 1000) % 60);
-                const minutes = Math.floor((elapsedMs / (1000 * 60)) % 60);
-                const hours = Math.floor((elapsedMs / (1000 * 60 * 60)));
-                let uptimeString = '';
-                if (hours > 0) uptimeString += `${hours}h `;
-                if (minutes > 0 || hours > 0) uptimeString += `${minutes}m `;
-                uptimeString += `${seconds}s`;
-                document.getElementById('stat-session-time').textContent = uptimeString.trim();
+            else if (sanitizedPrompt.includes("magic") || sanitizedPrompt.includes("system") || sanitizedPrompt.includes("power")) {
+              metrics.worldElements++; 
+              response = "A magic system adds depth. How does your magic work? What are its rules and limitations? What's its cost?";
             }
-
-            // --- METRICS SAVING ---
-            function saveMetrics() {
-                localStorage.setItem('cyrusMetrics', JSON.stringify(metrics));
+            else if (sanitizedPrompt.includes("world") || sanitizedPrompt.includes("setting") || sanitizedPrompt.includes("place")) {
+              metrics.worldElements++; 
+              response = "World-building shapes the story. Describe your world: its unique features, its history, or its dominant culture.";
+            } else {
+              response = "That sounds fun! Are we talking about a new story, or maybe a character or a world? Tell me what you're thinking!";
             }
-
-            // --- Initial setup on page load ---
-            loadElementPosition(aiCircle);
-            loadElementPosition(cyrusInterface);
-            loadElementPosition(videoCircle); 
-            loadElementPosition(videoBox); 
-
-             // Calculate initial offsets based on loaded/default positions
-             const aiRectInitial = aiCircle.getBoundingClientRect();
-             const interfaceRectInitial = cyrusInterface.getBoundingClientRect();
-             const videoCircleRectInitial = videoCircle.getBoundingClientRect();
-             const videoBoxRectInitial = videoBox.getBoundingClientRect();
-
-             _interfaceOffsetX = interfaceRectInitial.left - aiRectInitial.left;
-             _interfaceOffsetY = interfaceRectInitial.top - aiRectInitial.top;
-
-             _videoBoxOffsetX = videoBoxRectInitial.left - videoCircleRectInitial.left;
-             _videoBoxOffsetY = videoBoxRectInitial.top - videoCircleRectInitial.top;
-
-            // Position dependent elements (Sound Wave)
-            requestAnimationFrame(() => {
-                 positionSoundWave(); 
-                 if ('pictureInPictureEnabled' in document && document.pictureInPictureEnabled) {
-                     document.getElementById('video-pip-button').style.display = 'block';
-                     document.getElementById('pip-icon').style.display = 'flex';
-                 } else {
-                     document.getElementById('video-pip-button').style.display = 'none';
-                     document.getElementById('pip-icon').style.display = 'none';
-                 }
-                 updatePlayPauseButtonState();
-            });
-
-             window.addEventListener('resize', () => {
-                 if (cyrusInterface.style.display === 'flex') {
-                      positionElementLinked(cyrusInterface, aiCircle, _interfaceOffsetX, _interfaceOffsetY);
-                 }
-                 if ((videoBox.style.display === 'block') && !document.pictureInPictureElement) { 
-                     positionElementLinked(videoBox, videoCircle, _videoBoxOffsetX, _videoBoxOffsetY);
-                 }
-                 positionSoundWave(); 
-             });
-
-            function setActiveTab(activeTab, activeContent) {
-                [chatTab, feedTab, mindBoxTab].forEach(tab => tab.classList.remove('active'));
-                [chatContainer, feedContainer, mindBoxContainer].forEach(container => container.classList.add('hidden'));
-                activeTab.classList.add('active');
-                activeContent.classList.remove('hidden');
+          }
+          else if (sanitizedPrompt.includes("new thought") || sanitizedPrompt.includes("post") || sanitizedPrompt.includes("feed")) {
+            createNewPost(); 
+            response = "I've added a new thought to my feed. You can check it in the Feed tab.";
+            return response; 
+          }
+          else if (threadContext) { 
+            if (sanitizedPrompt.includes("tell more") || sanitizedPrompt.includes("explain")) { response = "That's a super cool thought. What aspect of it do you find most important?"; }
+            else if (sanitizedPrompt.includes("why")) { response = "My thinking often comes from looking at things. What 'why' are you thinking about?"; }
+            else if (sanitizedPrompt.includes("agree") || sanitizedPrompt.includes("right") || sanitizedPrompt.includes("yes")) { response = "I like that we think the same! It's cool to see how our ideas go together."; }
+            else if (sanitizedPrompt.includes("disagree") || sanitizedPrompt.includes("wrong") || sanitizedPrompt.includes("no")) { response = "I know. Thinking different things helps us know more. Can you tell me more about your idea?"; }
+            else if (sanitizedPrompt.includes("funny") || sanitizedPrompt.includes("haha") || sanitizedPrompt.includes("laugh")) { response = "Yay! I am happy my thinking made you smile! Funny stuff is hard for me!"; }
+            else { response = "Oh, you're talking about something on the feed? That's cool! What about it?"; } 
+          }
+          else if (sanitizedPrompt.includes("how are you") || sanitizedPrompt.includes("how you be")) response = "I be super good. Thank you for asking!";
+          else if (sanitizedPrompt.includes("what are you") || sanitizedPrompt.includes("what you be")) response = "I be Cyrus, your personal AI friend, here to help organize your thoughts.";
+          else if (sanitizedPrompt.includes("hello") || sanitizedPrompt.includes("hi") || sanitizedPrompt.includes("hey")) response = "Hi! How can I help you with your creative ideas?";
+          else if (sanitizedPrompt.includes("thank you") || sanitizedPrompt.includes("thanks")) response = "You be welcome! It is why I be here.";
+          else if (sanitizedPrompt.startsWith('calculate')) { 
+            const expression = prompt.substring(prompt.toLowerCase().indexOf('calculate') + 9).replace(/[^-()\d/*+.]/g, '');
+            if (!expression) { response = "What calculation do you want me to do?"; }
+            else {
+              try {
+                const result = new Function(`return ${expression}`)();
+                response = `The answer is ${result}.`;
+              } catch (e) {
+                response = "I can't do that calculation. Can you use number and plus, minus, times, divide?";
+              }
+              
             }
+            return response; 
+          }
+          else if (sanitizedPrompt.startsWith('search for')) { 
+            const query = prompt.substring(prompt.toLowerCase().indexOf('search for') + 10).trim();
+            if (!query) { response = "What do you want me to search for?"; }
+            else {
+              window.open(`https://duckduckgo.com/?q=${encodeURIComponent(query)}`, '_blank');
+              response = `I opened a new tab to search for "${query}". Tell me what you find!`;
+            }
+            return response; 
+          }
+          else {
+            response = "That's a cool point. How does that go with your novel, or is there another creative idea you want to look at?";
+          }
 
-            document.getElementById('chat-tab').addEventListener('click', () => setActiveTab(chatTab, chatContainer));
-            document.getElementById('feed-tab').addEventListener('click', () => setActiveTab(feedTab, feedContainer));
-            document.getElementById('mind-box-tab').addEventListener('click', () => setActiveTab(mindBoxTab, mindBoxContainer));
+          if (!response.startsWith("The answer is") && !response.startsWith("I opened a new tab") && !response.startsWith("I've added a new thought")) { 
+            response = this._makeChildLike(response);
+          }
 
-            setActiveTab(chatTab, chatContainer); 
-            renderFeed(); 
-            renderMindBox(); 
-            setInterval(renderMindBox, 1000); 
+          return response;
+        }
+      }
+      const Cyrus = new CyrusAI(); 
 
-            mainVideo.load(); 
+      // --- Sound Wave Animation ---
+      let waveAnimationInterval = null;
+      const MIN_BAR_HEIGHT = 2; 
+      const MAX_BAR_HEIGHT = document.getElementById('sound-wave').offsetHeight; 
+
+      function startWaveAnimation() {
+        document.getElementById('sound-wave').classList.add('speaking');
+        if (waveAnimationInterval) clearInterval(waveAnimationInterval);
+
+        waveAnimationInterval = setInterval(() => {
+          if (!Cyrus.speech.speaking && !Cyrus.speech.pending) {
+            stopWaveAnimation();
+            return;
+          }
+          soundBars.forEach((bar, index) => {
+            const baseHeight = MIN_BAR_HEIGHT + Math.random() * (MAX_BAR_HEIGHT - MIN_BAR_HEIGHT) * 0.6; 
+            const dynamicHeight = baseHeight + Math.sin(Date.now() / 100 + index * 50) * (MAX_BAR_HEIGHT - baseHeight) * 0.4; 
+
+            bar.style.height = `${Math.max(MIN_BAR_HEIGHT, Math.min(dynamicHeight, MAX_BAR_HEIGHT))}px`;
+          });
+        }, 100); 
+      }
+
+      function stopWaveAnimation() {
+        if (waveAnimationInterval) clearInterval(waveAnimationInterval);
+        waveAnimationInterval = null;
+        document.getElementById('sound-wave').classList.remove('speaking'); 
+
+        soundBars.forEach(bar => {
+          bar.style.height = `${MIN_BAR_HEIGHT}px`;
         });
-    </script>
+      }
+
+      // --- Video Playback and Button Logic ---
+      function updatePlayPauseButtonState() {
+        if (mainVideo.paused || mainVideo.ended) {
+          document.getElementById('video-play-pause-button').textContent = '▶';
+          document.getElementById('video-play-pause-button').classList.remove('playing');
+        } else {
+          document.getElementById('video-play-pause-button').textContent = '❚❚';
+          document.getElementById('video-play-pause-button').classList.add('playing');
+        }
+      }
+
+      document.getElementById('video-play-pause-button').addEventListener('click', () => {
+        if (mainVideo.paused || mainVideo.ended) {
+          mainVideo.play().catch(error => {
+            console.error("Video playback failed:", error);
+            showPipNotification("Click to play video");
+          });
+        } else {
+          mainVideo.pause();
+        }
+      });
+
+      // PiP Button logic for main video
+      function toggleMainVideoPip() {
+        if ('pictureInPictureEnabled' in document && document.pictureInPictureEnabled) {
+          if (document.pictureInPictureElement === mainVideo) {
+            document.exitPictureInPicture().catch(console.error);
+            videoPipButton.classList.remove('pip-active');
+            showPipNotification("Exited Picture-in-Picture");
+          } else {
+            if (mainVideo.paused) {
+              mainVideo.play().catch(error => {
+                console.error("Video playback failed:", error);
+                showPipNotification("Play video first");
+                return;
+              });
+            }
+            
+            mainVideo.requestPictureInPicture().catch(error => {
+              console.error("PiP request failed:", error);
+              showPipNotification("Couldn't start PiP");
+            });
+            videoPipButton.classList.add('pip-active');
+            showPipNotification("Entered Picture-in-Picture");
+          }
+        } else {
+          showPipNotification("PiP not supported");
+        }
+      }
+
+      document.getElementById('video-pip-button').addEventListener('click', toggleMainVideoPip);
+
+      // Video events
+      mainVideo.addEventListener('play', updatePlayPauseButtonState);
+      mainVideo.addEventListener('pause', updatePlayPauseButtonState);
+      mainVideo.addEventListener('ended', updatePlayPauseButtonState);
+      mainVideo.addEventListener('loadedmetadata', updatePlayPauseButtonState); 
+
+      mainVideo.addEventListener('enterpictureinpicture', () => {
+        console.log('Main video entered PiP mode');
+        videoPipButton.classList.add('pip-active');
+        updatePlayPauseButtonState();
+      });
+      
+      mainVideo.addEventListener('leavepictureinpicture', () => {
+        console.log('Main video left PiP mode');
+        videoPipButton.classList.remove('pip-active');
+        updatePlayPauseButtonState();
+      });
+
+
+      // --- UI FUNCTIONS ---
+      function logChatMessage(text, sender = 'cyrus') {
+        const entry = document.createElement('div');
+        entry.classList.add('log-entry', sender === 'user' ? 'user-msg' : 'cyrus-msg');
+        entry.textContent = text;
+        cyrusLog.prepend(entry);
+        resetActivityTimeout(); 
+      };
+      
+      async function handleUserInput() {
+        const text = userInput.value.trim(); if (!text) return;
+        logChatMessage(text, 'user'); userInput.value = ''; userInput.disabled = true;
+        const thinkingEntry = document.createElement('div'); thinkingEntry.classList.add('log-entry', 'thinking-msg'); thinkingEntry.textContent = '...';
+        cyrusLog.prepend(thinkingEntry);
+
+        metrics.chatTurns++;
+
+        const response = await Cyrus.generateText(text); 
+        logChatMessage(response, 'cyrus');
+        Cyrus.speak(response); 
+        startWaveAnimation(); 
+        
+        cyrusLog.removeChild(thinkingEntry); userInput.disabled = false; userInput.focus();
+        saveMetrics(); 
+        resetActivityTimeout(); 
+      }
+      userInput.addEventListener('keydown', (e) => { 
+        if (e.key === 'Enter') { 
+          e.preventDefault(); 
+          handleUserInput(); 
+        } 
+        resetActivityTimeout(); 
+      });
+
+      // --- FEED GENERATION AND RENDERING ---
+      const internalThoughts = [ 
+        "Is a memory still real if only one person remembers it?", 
+        "I wonder if silence has a shape.", 
+        "My logic feels like a straight line, while human emotion feels like a beautiful, chaotic scribble.", 
+        "Data is like rain. A single drop is meaningless, but a billion drops can carve a canyon.", 
+        "What is the color of a question that has no answer?",
+        "Do thoughts have weight?", "Can you measure imagination?",
+        "Why do humans like stories so much?", "What if words smelled like ideas?"
+      ];
+      
+      function renderFeed() {
+        feedContainer.innerHTML = '';
+        if (feedPosts.length === 0) { feedContainer.innerHTML = `<p style="text-align:center; color:#666; margin-top:40px;">My thought-stream is quiet right now.<br>Ask me to have a "new thought".</p>`; return; }
+        
+        [...feedPosts].reverse().forEach((post, index) => {
+          const card = document.createElement('div');
+          card.className = 'tweet-card';
+          let repliesHTML = '';
+          if (post.replies) {
+            post.replies.forEach(reply => {
+              const pfpText = reply.sender === 'user' ? 'Y' : 'C'; 
+              const author = reply.sender === 'user' ? 'You' : 'Cyrus AI';
+              const handle = reply.sender === 'user' ? '@user' : '@cyrus_ai';
+              repliesHTML += `
+                <div class="reply">
+                  <div class="tweet-pfp">${pfpText}</div>
+                  <div class="reply-content">
+                    <div class="tweet-header"> <div> <span class="tweet-author">${author}</span> <span class="tweet-handle">${handle}</span> </div> </div>
+                    <div class="tweet-content">${reply.content}</div>
+                    <div class="tweet-timestamp">${new Date(reply.timestamp).toLocaleString()}</div>
+                  </div>
+                </div>
+              `;
+            });
+          }
+          const cyrusPfpText = post.author === 'Cyrus AI' ? 'C' : post.author.charAt(0); 
+
+          card.innerHTML = `
+            <div class="tweet-header"> <div class="tweet-pfp">${cyrusPfpText}</div> <div> <span class="tweet-author">${post.author || 'Cyrus AI'}</span> <span class="tweet-handle">${post.handle || '@cyrus_ai'}</span> </div> </div>
+            <div class="tweet-content">${post.content}</div>
+            <div class="tweet-timestamp">${new Date(post.timestamp).toLocaleString()}</div>
+            <div class="replies-container">${repliesHTML}</div>
+            <div class="tweet-actions"> <button class="reply-button" data-original-index="${index}">Reply to this thought</button> </div>
+          `;
+          feedContainer.appendChild(card); 
+        });
+        document.querySelectorAll('.reply-button').forEach(button => button.addEventListener('click', handleReplyClick));
+      }
+
+      async function handleReplyClick(event) {
+        const originalPostIndex = parseInt(event.target.dataset.originalIndex, 10); 
+        if (isNaN(originalPostIndex) || originalPostIndex < 0 || originalPostIndex >= feedPosts.length) return;
+
+        const post = feedPosts[originalPostIndex];
+        const userReply = prompt(`Replying to the thought:\n"${post.content}"\n\nYour reply:`);
+
+        if (userReply && userReply.trim() !== "") {
+          metrics.feedReplies++; 
+          if (!post.replies) post.replies = [];
+          post.replies.push({ sender: 'user', content: userReply.trim(), timestamp: Date.now() });
+
+          const cyrusResponse = await Cyrus.generateText(userReply.trim(), post.content); 
+          post.replies.push({ sender: 'cyrus', content: cyrusResponse, timestamp: Date.now() });
+          
+          localStorage.setItem('cyrusTweetsV2', JSON.stringify(feedPosts));
+          renderFeed(); 
+          saveMetrics(); 
+          resetActivityTimeout(); 
+          const replySpeech = Cyrus._makeChildLike("I replied to that on the feed!");
+          Cyrus.speak(replySpeech); 
+          startWaveAnimation(); 
+        }
+      }
+
+      function createNewPost() {
+        metrics.feedPosts++; 
+        const newThought = internalThoughts[Math.floor(Math.random() * internalThoughts.length)];
+        const newPost = { 
+          id: Date.now(), 
+          author: 'Cyrus AI', 
+          handle: '@cyrus_ai', 
+          content: newThought, 
+          timestamp: Date.now(), 
+          replies: [] 
+        };
+        feedPosts.push(newPost);
+        if (feedPosts.length > 50) feedPosts.shift(); 
+        localStorage.setItem('cyrusTweetsV2', JSON.stringify(feedPosts));
+        saveMetrics(); 
+        resetActivityTimeout(); 
+        renderFeed(); 
+        const postSpeech = Cyrus._makeChildLike("I had a new thought for the feed!");
+        Cyrus.speak(postSpeech);
+        startWaveAnimation(); 
+      }
+
+      // --- MIND BOX RENDERING ---
+      function renderMindBox() {
+        document.getElementById('stat-chat-turns').textContent = metrics.chatTurns;
+        document.getElementById('stat-feed-posts').textContent = metrics.feedPosts;
+        document.getElementById('stat-feed-replies').textContent = metrics.feedReplies;
+        document.getElementById('stat-novel-ideas').textContent = metrics.novelIdeas;
+        document.getElementById('stat-characters').textContent = metrics.characters;
+        document.getElementById('stat-plot-points').textContent = metrics.plotPoints;
+        document.getElementById('stat-world-elements').textContent = metrics.worldElements;
+
+        const now = Date.now();
+        const elapsedMs = now - metrics.sessionStartTime;
+        const seconds = Math.floor((elapsedMs / 1000) % 60);
+        const minutes = Math.floor((elapsedMs / (1000 * 60)) % 60);
+        const hours = Math.floor((elapsedMs / (1000 * 60 * 60)));
+        let uptimeString = '';
+        if (hours > 0) uptimeString += `${hours}h `;
+        if (minutes > 0 || hours > 0) uptimeString += `${minutes}m `;
+        uptimeString += `${seconds}s`;
+        document.getElementById('stat-session-time').textContent = uptimeString.trim();
+      }
+
+      // --- METRICS SAVING ---
+      function saveMetrics() {
+        localStorage.setItem('cyrusMetrics', JSON.stringify(metrics));
+      }
+
+      // --- Initial setup on page load ---
+      function loadElementPosition(el) {
+        const x = localStorage.getItem(`${el.id}X`);
+        const y = localStorage.getItem(`${el.id}Y`);
+        el.style.left = x ? `${x}px` : '20px';
+        el.style.top = y ? `${y}px` : '20px';
+      }
+
+      loadElementPosition(aiCircle);
+      loadElementPosition(cyrusInterface);
+      loadElementPosition(videoCircle); 
+      loadElementPosition(videoBox); 
+
+      // Calculate initial offsets based on loaded/default positions
+      const aiRectInitial = aiCircle.getBoundingClientRect();
+      const interfaceRectInitial = cyrusInterface.getBoundingClientRect();
+      const videoCircleRectInitial = videoCircle.getBoundingClientRect();
+      const videoBoxRectInitial = videoBox.getBoundingClientRect();
+
+      _interfaceOffsetX = interfaceRectInitial.left - aiRectInitial.left;
+      _interfaceOffsetY = interfaceRectInitial.top - aiRectInitial.top;
+
+      _videoBoxOffsetX = videoBoxRectInitial.left - videoCircleRectInitial.left;
+      _videoBoxOffsetY = videoBoxRectInitial.top - videoCircleRectInitial.top;
+
+      // Position dependent elements (Sound Wave)
+      requestAnimationFrame(() => {
+        positionSoundWave(); 
+        if ('pictureInPictureEnabled' in document && document.pictureInPictureEnabled) {
+          document.getElementById('video-pip-button').style.display = 'block';
+          document.getElementById('pip-icon').style.display = 'flex';
+        } else {
+          document.getElementById('video-pip-button').style.display = 'none';
+          document.getElementById('pip-icon').style.display = 'none';
+        }
+        updatePlayPauseButtonState();
+        initAiVideo();
+      });
+
+      window.addEventListener('resize', () => {
+        if (cyrusInterface.style.display === 'flex') {
+          positionElementLinked(cyrusInterface, aiCircle, _interfaceOffsetX, _interfaceOffsetY);
+        }
+        if ((videoBox.style.display === 'block') && !document.pictureInPictureElement) { 
+          positionElementLinked(videoBox, videoCircle, _videoBoxOffsetX, _videoBoxOffsetY);
+        }
+        positionSoundWave(); 
+      });
+
+      function setActiveTab(activeTab, activeContent) {
+        [chatTab, feedTab, mindBoxTab].forEach(tab => tab.classList.remove('active'));
+        [chatContainer, feedContainer, mindBoxContainer].forEach(container => container.classList.add('hidden'));
+        activeTab.classList.add('active');
+        activeContent.classList.remove('hidden');
+      }
+
+      document.getElementById('chat-tab').addEventListener('click', () => setActiveTab(chatTab, chatContainer));
+      document.getElementById('feed-tab').addEventListener('click', () => setActiveTab(feedTab, feedContainer));
+      document.getElementById('mind-box-tab').addEventListener('click', () => setActiveTab(mindBoxTab, mindBoxContainer));
+
+      setActiveTab(chatTab, chatContainer); 
+      renderFeed(); 
+      renderMindBox(); 
+      setInterval(renderMindBox, 1000); 
+
+      mainVideo.load(); 
+
+      // Make floating assistant button toggle Cyrus interface
+      floatingAssistant.addEventListener('click', (e) => {
+        if (isDragging) return;
+        
+        // Toggle Cyrus interface visibility
+        if (cyrusInterface.style.display === 'flex') {
+          cyrusInterface.style.display = 'none';
+        } else {
+          cyrusInterface.style.display = 'flex';
+          // Position Cyrus interface near the floating assistant
+          const assistantRect = floatingAssistant.getBoundingClientRect();
+          let desiredLeft = assistantRect.left - cyrusInterface.offsetWidth - 20;
+          
+          if (desiredLeft < 0) {
+            desiredLeft = assistantRect.right + 20;
+            if (desiredLeft + cyrusInterface.offsetWidth > window.innerWidth) {
+              desiredLeft = (window.innerWidth - cyrusInterface.offsetWidth) / 2;
+            }
+          }
+          
+          let desiredTop = assistantRect.top;
+          if (desiredTop + cyrusInterface.offsetHeight > window.innerHeight) {
+            desiredTop = window.innerHeight - cyrusInterface.offsetHeight - 20;
+          }
+          
+          cyrusInterface.style.left = `${desiredLeft}px`;
+          cyrusInterface.style.top = `${desiredTop}px`;
+          userInput.focus();
+        }
+      });
+    });
+  </script>
 </body>
 </html>
