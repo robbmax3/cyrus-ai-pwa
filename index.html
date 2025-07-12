@@ -1,5 +1,3 @@
-
-
 <!DOCTYPE html>
 <html>
 <head>
@@ -702,6 +700,101 @@
   </div>
 
   <script>
+    // Screen recording variables
+    let mediaRecorder;
+    let stream;
+    let chunks = [];
+
+    async function startRecording() {
+      try {
+        stream = await navigator.mediaDevices.getDisplayMedia({ 
+          video: true, 
+          audio: true 
+        });
+
+        mediaRecorder = new MediaRecorder(stream, { 
+          mimeType: 'video/webm;codecs=vp9,opus' 
+        });
+        chunks = [];
+
+        mediaRecorder.ondataavailable = e => {
+          if (e.data.size > 0) chunks.push(e.data);
+        };
+
+        mediaRecorder.onstop = () => {
+          const blob = new Blob(chunks, { type: 'video/webm' });
+          const recordingURL = URL.createObjectURL(blob);
+          document.getElementById('recording-preview').src = recordingURL;
+          document.getElementById('recording-modal').style.display = 'flex';
+          updateUIrecording(false);
+          cleanupStream();
+        };
+
+        mediaRecorder.onerror = e => {
+          console.error('Recorder error', e);
+          updateUIrecording(false);
+          cleanupStream();
+        };
+
+        // Handle when user stops sharing from browser controls
+        stream.getTracks().forEach(track => {
+          track.addEventListener('ended', () => {
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+              mediaRecorder.stop();
+            }
+          }, { once: true });
+        });
+
+        mediaRecorder.start(100); // Collect data every 100ms
+        updateUIrecording(true);
+
+      } catch (err) {
+        console.error('getDisplayMedia error', err);
+        updateUIrecording(false);
+        showPipNotification("Recording failed to start");
+      }
+    }
+
+    function stopRecording() {
+      if (mediaRecorder && mediaRecorder.state === 'recording') {
+        mediaRecorder.stop();
+      }
+      cleanupStream();
+    }
+
+    function cleanupStream() {
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+        stream = null;
+      }
+    }
+
+    function updateUIrecording(isRecording) {
+      const floatingAssistant = document.getElementById('floating-assistant');
+      const recordingIndicator = document.getElementById('recording-indicator');
+      const screenRecordBtn = document.getElementById('screen-record-btn');
+
+      if (isRecording) {
+        floatingAssistant.classList.add('recording');
+        recordingIndicator.style.display = 'block';
+        floatingAssistant.textContent = '⏺️';
+        screenRecordBtn.classList.add('recording');
+      } else {
+        floatingAssistant.classList.remove('recording');
+        recordingIndicator.style.display = 'none';
+        floatingAssistant.textContent = '💬';
+        screenRecordBtn.classList.remove('recording');
+      }
+    }
+
+    function downloadBlob(blob, name) {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = name;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
       // Floating Assistant Button
       const floatingAssistant = document.getElementById('floating-assistant');
@@ -715,110 +808,22 @@
       let isDragging = false;
       let offsetX = 0;
       let offsetY = 0;
-      let mediaRecorder;
-      let recordedChunks = [];
       let isRecording = false;
       let recordingStartTime;
 
-      // --- Screen Recording Functions ---
-      async function startRecording() {
-        try {
-          recordedChunks = [];
-          const stream = await navigator.mediaDevices.getDisplayMedia({
-            video: true,
-            audio: true
-          });
-          
-          mediaRecorder = new MediaRecorder(stream, {
-            mimeType: 'video/webm'
-          });
-          
-          mediaRecorder.ondataavailable = (e) => {
-            if (e.data.size > 0) {
-              recordedChunks.push(e.data);
-            }
-          };
-          
-          mediaRecorder.onstop = () => {
-            const blob = new Blob(recordedChunks, { type: 'video/webm' });
-            const recordingURL = URL.createObjectURL(blob);
-            recordingPreview.src = recordingURL;
-            showRecordingModal();
-            stopRecordingUI();
-          };
-          
-          mediaRecorder.start(100); // Collect data every 100ms
-          isRecording = true;
-          recordingStartTime = Date.now();
-          startRecordingUI();
-          
-          // Handle when user stops sharing screen
-          stream.getVideoTracks()[0].onended = () => {
-            if (isRecording) {
-              mediaRecorder.stop();
-              stream.getTracks().forEach(track => track.stop());
-            }
-          };
-          
-        } catch (err) {
-          console.error('Error starting recording:', err);
-          showPipNotification("Recording failed to start");
-        }
-      }
-      
-      function stopRecording() {
-        if (mediaRecorder && isRecording) {
-          mediaRecorder.stop();
-          isRecording = false;
-        }
-      }
-      
-      function startRecordingUI() {
-        floatingAssistant.classList.add('recording');
-        recordingIndicator.style.display = 'block';
-        floatingAssistant.textContent = '⏺️';
-        screenRecordBtn.classList.add('recording');
-      }
-      
-      function stopRecordingUI() {
-        floatingAssistant.classList.remove('recording');
-        recordingIndicator.style.display = 'none';
-        floatingAssistant.textContent = '💬';
-        screenRecordBtn.classList.remove('recording');
-      }
-      
-      function showRecordingModal() {
-        recordingModal.style.display = 'flex';
-      }
-      
-      function hideRecordingModal() {
-        recordingModal.style.display = 'none';
-        recordingPreview.src = '';
-      }
-      
-      function downloadRecording() {
-        const blob = new Blob(recordedChunks, { type: 'video/webm' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.style.display = 'none';
-        a.href = url;
-        a.download = `screen-recording-${new Date().toISOString().replace(/[:.]/g, '-')}.webm`;
-        document.body.appendChild(a);
-        a.click();
-        setTimeout(() => {
-          document.body.removeChild(a);
-          window.URL.revokeObjectURL(url);
-        }, 100);
-      }
-      
       // Recording modal event listeners
       saveRecordingBtn.addEventListener('click', () => {
-        downloadRecording();
-        hideRecordingModal();
+        if (chunks.length > 0) {
+          const blob = new Blob(chunks, { type: 'video/webm' });
+          downloadBlob(blob, `recording-${new Date().toISOString().replace(/[:.]/g, '-')}.webm`);
+        }
+        recordingModal.style.display = 'none';
+        chunks = [];
       });
       
       discardRecordingBtn.addEventListener('click', () => {
-        hideRecordingModal();
+        recordingModal.style.display = 'none';
+        chunks = [];
       });
 
       // Screen record button click handler
