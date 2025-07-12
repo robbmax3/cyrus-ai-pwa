@@ -1,5 +1,7 @@
+
+
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
@@ -86,100 +88,6 @@
     #screen-record-btn.recording {
       color: #ff3b30;
       animation: pulse 1.5s infinite;
-    }
-
-    /* Video Analyzer Styles */
-    #video-analyzer {
-      display: none;
-      position: fixed;
-      width: 90%;
-      max-width: 600px;
-      height: 80vh;
-      background-color: #1e1e1e;
-      border-radius: 20px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
-      z-index: 9998;
-      flex-direction: column;
-      overflow: hidden;
-      border: 1px solid #333;
-      cursor: grab;
-      touch-action: none;
-    }
-    
-    #video-analyzer.dragging {
-      cursor: grabbing;
-    }
-    
-    #video-analyzer-content {
-      padding: 20px;
-      overflow-y: auto;
-      flex-grow: 1;
-    }
-    
-    #video-analyzer h2 {
-      margin-top: 0;
-      color: #00aaff;
-      padding: 15px;
-      border-bottom: 1px solid #333;
-    }
-    
-    #analyzer-video {
-      width: 100%;
-      max-height: 300px;
-      background-color: #000;
-      border-radius: 10px;
-    }
-    
-    #analyzer-frames {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      margin-top: 15px;
-    }
-    
-    #analyzer-frames img {
-      margin: 6px;
-      border: 2px solid #444;
-      border-radius: 8px;
-      max-width: 120px;
-      cursor: pointer;
-      transition: transform 0.2s;
-    }
-    
-    #analyzer-frames img:hover {
-      transform: scale(1.05);
-      border-color: #00aaff;
-    }
-    
-    #analyzer-controls {
-      display: flex;
-      gap: 10px;
-      margin-top: 15px;
-    }
-    
-    .analyzer-btn {
-      padding: 8px 15px;
-      border: none;
-      border-radius: 5px;
-      background-color: #007aff;
-      color: white;
-      cursor: pointer;
-      font-weight: bold;
-    }
-    
-    #analyzer-close-btn {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      background: none;
-      border: none;
-      color: #888;
-      font-size: 20px;
-      cursor: pointer;
-    }
-    
-    #analyzer-close-btn:hover {
-      color: #ff3b30;
     }
 
     /* --- Floating Buttons (AI Circle, Video Circle) --- */
@@ -704,10 +612,6 @@
       background-color: #ff3b30;
       color: white;
     }
-    #analyze-recording {
-      background-color: #34c759;
-      color: white;
-    }
   </style>
 </head>
 <body>
@@ -722,29 +626,8 @@
       <video id="recording-preview" controls></video>
       <div id="recording-actions">
         <button id="save-recording" class="recording-btn">Save Recording</button>
-        <button id="analyze-recording" class="recording-btn">Analyze</button>
         <button id="discard-recording" class="recording-btn">Discard</button>
       </div>
-    </div>
-  </div>
-
-  <!-- Video Analyzer -->
-  <div id="video-analyzer">
-    <button id="analyzer-close-btn">✕</button>
-    <h2>🎥 Screen Video Analyzer</h2>
-    <div id="video-analyzer-content">
-      <label for="analyzer-video-input">📁 Select a screen recording video file:</label><br>
-      <input type="file" accept="video/*" id="analyzer-video-input"><br><br>
-      
-      <video id="analyzer-video" controls></video><br><br>
-      
-      <div id="analyzer-controls">
-        <button id="analyze-btn" class="analyzer-btn">🔍 Start Analyzing</button>
-        <button id="clear-frames-btn" class="analyzer-btn">🗑️ Clear Frames</button>
-      </div>
-      
-      <h3>📸 Extracted Frames:</h3>
-      <div id="analyzer-frames"></div>
     </div>
   </div>
 
@@ -826,18 +709,8 @@
       const recordingModal = document.getElementById('recording-modal');
       const recordingPreview = document.getElementById('recording-preview');
       const saveRecordingBtn = document.getElementById('save-recording');
-      const analyzeRecordingBtn = document.getElementById('analyze-recording');
       const discardRecordingBtn = document.getElementById('discard-recording');
       const screenRecordBtn = document.getElementById('screen-record-btn');
-      
-      // Video Analyzer Elements
-      const videoAnalyzer = document.getElementById('video-analyzer');
-      const analyzerVideoInput = document.getElementById('analyzer-video-input');
-      const analyzerVideo = document.getElementById('analyzer-video');
-      const analyzerFrames = document.getElementById('analyzer-frames');
-      const analyzeBtn = document.getElementById('analyze-btn');
-      const clearFramesBtn = document.getElementById('clear-frames-btn');
-      const analyzerCloseBtn = document.getElementById('analyzer-close-btn');
       
       let isDragging = false;
       let offsetX = 0;
@@ -944,11 +817,6 @@
         hideRecordingModal();
       });
       
-      analyzeRecordingBtn.addEventListener('click', () => {
-        hideRecordingModal();
-        showVideoAnalyzer(recordingPreview.src);
-      });
-      
       discardRecordingBtn.addEventListener('click', () => {
         hideRecordingModal();
       });
@@ -962,101 +830,50 @@
         }
       });
 
-      // --- Video Analyzer Functions ---
-      function showVideoAnalyzer(videoSrc = null) {
-        videoAnalyzer.style.display = 'flex';
-        
-        // Position analyzer near the floating assistant
-        const assistantRect = floatingAssistant.getBoundingClientRect();
-        let desiredLeft = assistantRect.left - videoAnalyzer.offsetWidth - 20;
-        
-        if (desiredLeft < 0) {
-          desiredLeft = assistantRect.right + 20;
-          if (desiredLeft + videoAnalyzer.offsetWidth > window.innerWidth) {
-            desiredLeft = (window.innerWidth - videoAnalyzer.offsetWidth) / 2;
-          }
-        }
-        
-        let desiredTop = assistantRect.top;
-        if (desiredTop + videoAnalyzer.offsetHeight > window.innerHeight) {
-          desiredTop = window.innerHeight - videoAnalyzer.offsetHeight - 20;
-        }
-        
-        videoAnalyzer.style.left = `${desiredLeft}px`;
-        videoAnalyzer.style.top = `${desiredTop}px`;
-        
-        if (videoSrc) {
-          analyzerVideo.src = videoSrc;
-          showPipNotification("Loaded recording for analysis");
-        }
-      }
-      
-      function hideVideoAnalyzer() {
-        videoAnalyzer.style.display = 'none';
-        analyzerVideo.src = '';
-        analyzerFrames.innerHTML = '';
-      }
-      
-      analyzerCloseBtn.addEventListener('click', hideVideoAnalyzer);
-      
-      analyzerVideoInput.addEventListener('change', () => {
-        const file = analyzerVideoInput.files[0];
-        if (file) {
-          const url = URL.createObjectURL(file);
-          analyzerVideo.src = url;
-          showPipNotification("✅ Video loaded successfully.");
-        }
-      });
-      
-      async function captureFrames() {
-        if (!analyzerVideo.src) {
-          showPipNotification("❗ Please select a video file first.");
-          return;
-        }
-
-        const canvas = document.createElement("canvas");
-        const ctx = canvas.getContext("2d");
-
-        await analyzerVideo.play();
-        analyzerVideo.pause();
-
-        const duration = analyzerVideo.duration;
-        canvas.width = analyzerVideo.videoWidth;
-        canvas.height = analyzerVideo.videoHeight;
-
-        analyzerFrames.innerHTML = "";
-
-        showPipNotification("🚀 Starting frame extraction...");
-
-        for (let t = 0; t < duration; t += 2) {
-          showPipNotification(`⏱️ Capturing frame at ${t.toFixed(0)} seconds...`);
-          analyzerVideo.currentTime = t;
-          await new Promise(r => analyzerVideo.onseeked = r);
-
-          ctx.drawImage(analyzerVideo, 0, 0, canvas.width, canvas.height);
-          const imgURL = canvas.toDataURL("image/png");
-
-          const img = document.createElement("img");
-          img.src = imgURL;
-          img.width = 160;
-          analyzerFrames.appendChild(img);
-        }
-
-        showPipNotification("✅ Frame extraction complete!");
-      }
-      
-      analyzeBtn.addEventListener('click', captureFrames);
-      
-      clearFramesBtn.addEventListener('click', () => {
-        analyzerFrames.innerHTML = '';
-        showPipNotification("Frames cleared");
+      // --- Desktop Drag ---
+      floatingAssistant.addEventListener('mousedown', (e) => {
+        if (isRecording) return; // Don't allow dragging while recording
+        isDragging = true;
+        offsetX = e.clientX - floatingAssistant.getBoundingClientRect().left;
+        offsetY = e.clientY - floatingAssistant.getBoundingClientRect().top;
+        floatingAssistant.style.cursor = 'grabbing';
       });
 
-      // Make the video analyzer draggable
-      videoAnalyzer.addEventListener('mousedown', (e) => startDrag(e, videoAnalyzer));
-      videoAnalyzer.addEventListener('touchstart', (e) => startDrag(e, videoAnalyzer));
+      document.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        floatingAssistant.style.left = `${e.clientX - offsetX}px`;
+        floatingAssistant.style.top = `${e.clientY - offsetY}px`;
+        floatingAssistant.style.right = 'auto';
+        floatingAssistant.style.bottom = 'auto';
+      });
 
-      // [Rest of your existing code...]
+      document.addEventListener('mouseup', () => {
+        isDragging = false;
+        floatingAssistant.style.cursor = 'grab';
+      });
+
+      // --- Mobile Touch Drag ---
+      floatingAssistant.addEventListener('touchstart', (e) => {
+        if (isRecording) return; // Don't allow dragging while recording
+        isDragging = true;
+        const touch = e.touches[0];
+        offsetX = touch.clientX - floatingAssistant.getBoundingClientRect().left;
+        offsetY = touch.clientY - floatingAssistant.getBoundingClientRect().top;
+      });
+
+      document.addEventListener('touchmove', (e) => {
+        if (!isDragging) return;
+        const touch = e.touches[0];
+        floatingAssistant.style.left = `${touch.clientX - offsetX}px`;
+        floatingAssistant.style.top = `${touch.clientY - offsetY}px`;
+        floatingAssistant.style.right = 'auto';
+        floatingAssistant.style.bottom = 'auto';
+      });
+
+      document.addEventListener('touchend', () => {
+        isDragging = false;
+      });
+
       // Cyrus AI Elements
       const aiCircle = document.getElementById('ai-circle');
       const videoCircle = document.getElementById('video-circle'); 
@@ -1277,9 +1094,6 @@
         if (element === videoBox && (e.target.closest('#video-play-pause-button') || e.target.closest('#video-pip-button')) && !e.target.closest('#video-box')) {
           return; 
         }
-        if (element === videoAnalyzer && (e.target.closest('#analyzer-close-btn') || e.target.closest('#analyzer-controls')) && !e.target.closest('#video-analyzer')) {
-          return;
-        }
 
         _isDragging = true;
         _draggedElement = element;
@@ -1298,7 +1112,6 @@
         const interfaceRect = getElementCoords(cyrusInterface);
         const videoCircleCoords = getElementCoords(videoCircle);
         const videoBoxCoords = getElementCoords(videoBox);
-        const analyzerCoords = getElementCoords(videoAnalyzer);
 
         if (element === aiCircle || element === cyrusInterface) {
           _interfaceOffsetX = interfaceRect.x - aiCoords.x;
@@ -1307,9 +1120,6 @@
         if (element === videoCircle || element === videoBox) {
           _videoBoxOffsetX = videoBoxCoords.x - videoCircleCoords.x;
           _videoBoxOffsetY = videoBoxCoords.y - videoCircleCoords.y;
-        }
-        if (element === videoAnalyzer) {
-          // No linked elements for analyzer
         }
 
         document.body.style.userSelect = 'none';
@@ -1367,8 +1177,6 @@
       videoCircle.addEventListener('touchstart', (e) => startDrag(e, videoCircle)); 
       videoBox.addEventListener('mousedown', (e) => startDrag(e, videoBox)); 
       videoBox.addEventListener('touchstart', (e) => startDrag(e, videoBox)); 
-      videoAnalyzer.addEventListener('mousedown', (e) => startDrag(e, videoAnalyzer));
-      videoAnalyzer.addEventListener('touchstart', (e) => startDrag(e, videoAnalyzer));
 
       document.addEventListener('mousemove', doDrag);
       document.addEventListener('touchmove', doDrag, { passive: false }); 
@@ -1654,7 +1462,7 @@
         }
 
 
-        async function generateText(prompt, threadContext = "") { 
+        async generateText(prompt, threadContext = "") { 
           const lowerPrompt = prompt.toLowerCase();
           const sanitizedPrompt = lowerPrompt.replace(/[.,!?]/g, '').trim(); 
           let response;
@@ -1687,11 +1495,6 @@
             createNewPost(); 
             response = "I've added a new thought to my feed. You can check it in the Feed tab.";
             return response; 
-          }
-          else if (sanitizedPrompt.includes("analyze") || sanitizedPrompt.includes("recording") || sanitizedPrompt.includes("video")) {
-            showVideoAnalyzer();
-            response = "I've opened the video analyzer. You can upload a recording to extract frames.";
-            return response;
           }
           else if (threadContext) { 
             if (sanitizedPrompt.includes("tell more") || sanitizedPrompt.includes("explain")) { response = "That's a super cool thought. What aspect of it do you find most important?"; }
@@ -2015,14 +1818,12 @@
       loadElementPosition(cyrusInterface);
       loadElementPosition(videoCircle); 
       loadElementPosition(videoBox); 
-      loadElementPosition(videoAnalyzer);
 
       // Calculate initial offsets based on loaded/default positions
       const aiRectInitial = aiCircle.getBoundingClientRect();
       const interfaceRectInitial = cyrusInterface.getBoundingClientRect();
       const videoCircleRectInitial = videoCircle.getBoundingClientRect();
       const videoBoxRectInitial = videoBox.getBoundingClientRect();
-      const analyzerRectInitial = videoAnalyzer.getBoundingClientRect();
 
       _interfaceOffsetX = interfaceRectInitial.left - aiRectInitial.left;
       _interfaceOffsetY = interfaceRectInitial.top - aiRectInitial.top;
