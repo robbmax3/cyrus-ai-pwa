@@ -683,34 +683,46 @@
 
     async function startRecording() {
       try {
+        console.log('Starting recording...');
         document.getElementById('screen-record-btn').classList.add('recording');
         document.getElementById('recording-indicator').style.display = 'block';
         
+        const options = [
+          'video/webm;codecs=vp9',
+          'video/webm;codecs=vp8',
+          'video/webm'
+        ];
+        const supported = options.find(type => MediaRecorder.isTypeSupported(type));
+        console.log('Supported mimeType:', supported);
+
+        if (!supported) {
+          alert("المتصفح لا يدعم التسجيل.");
+          return;
+        }
+
         stream = await navigator.mediaDevices.getDisplayMedia({ 
           video: true, 
           audio: true 
         });
 
         mediaRecorder = new MediaRecorder(stream, { 
-          mimeType: 'video/webm;codecs=vp9,opus' 
+          mimeType: supported 
         });
         chunks = [];
 
         mediaRecorder.ondataavailable = e => {
+          console.log('Data available:', e.data);
           if (e.data.size > 0) chunks.push(e.data);
         };
 
+        mediaRecorder.onstart = () => console.log('Recording started ✅');
+        mediaRecorder.onerror = e => console.error('Recording error ❌', e);
         mediaRecorder.onstop = () => {
-          const blob = new Blob(chunks, { type: 'video/webm' });
+          console.log('Recording stopped');
+          const blob = new Blob(chunks, { type: supported });
           const recordingURL = URL.createObjectURL(blob);
           document.getElementById('recording-preview').src = recordingURL;
           document.getElementById('recording-modal').style.display = 'flex';
-          updateUIrecording(false);
-          cleanupStream();
-        };
-
-        mediaRecorder.onerror = e => {
-          console.error('Recorder error', e);
           updateUIrecording(false);
           cleanupStream();
         };
@@ -816,58 +828,76 @@
       });
 
       // Screen record button click handler
-      screenRecordBtn.addEventListener('click', () => {
+      document.getElementById("screen-record-btn").onclick = async () => {
+        console.log('Button clicked');
         if (isRecording) {
           stopRecording();
-        } else {
-          startRecording();
+          return;
         }
-      });
+        
+        try {
+          const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+          console.log('Got stream:', stream);
 
-      // --- Desktop Drag ---
-      floatingAssistant.addEventListener('mousedown', (e) => {
-        if (isRecording) return; // Don't allow dragging while recording
-        isDragging = true;
-        offsetX = e.clientX - floatingAssistant.getBoundingClientRect().left;
-        offsetY = e.clientY - floatingAssistant.getBoundingClientRect().top;
-        floatingAssistant.style.cursor = 'grabbing';
-      });
+          const options = [
+            'video/webm;codecs=vp9',
+            'video/webm;codecs=vp8',
+            'video/webm'
+          ];
+          const supported = options.find(type => MediaRecorder.isTypeSupported(type));
+          console.log('Supported mimeType:', supported);
 
-      document.addEventListener('mousemove', (e) => {
-        if (!isDragging) return;
-        floatingAssistant.style.left = `${e.clientX - offsetX}px`;
-        floatingAssistant.style.top = `${e.clientY - offsetY}px`;
-        floatingAssistant.style.right = 'auto';
-        floatingAssistant.style.bottom = 'auto';
-      });
+          if (!supported) {
+            alert("المتصفح لا يدعم التسجيل.");
+            return;
+          }
 
-      document.addEventListener('mouseup', () => {
-        isDragging = false;
-        floatingAssistant.style.cursor = 'grab';
-      });
+          mediaRecorder = new MediaRecorder(stream, { mimeType: supported });
+          chunks = [];
 
-      // --- Mobile Touch Drag ---
-      floatingAssistant.addEventListener('touchstart', (e) => {
-        if (isRecording) return; // Don't allow dragging while recording
-        isDragging = true;
-        const touch = e.touches[0];
-        offsetX = touch.clientX - floatingAssistant.getBoundingClientRect().left;
-        offsetY = touch.clientY - floatingAssistant.getBoundingClientRect().top;
-      });
+          mediaRecorder.ondataavailable = e => {
+            console.log('Data available:', e.data);
+            if (e.data.size > 0) chunks.push(e.data);
+          };
 
-      document.addEventListener('touchmove', (e) => {
-        if (!isDragging) return;
-        const touch = e.touches[0];
-        floatingAssistant.style.left = `${touch.clientX - offsetX}px`;
-        floatingAssistant.style.top = `${touch.clientY - offsetY}px`;
-        floatingAssistant.style.right = 'auto';
-        floatingAssistant.style.bottom = 'auto';
-      });
+          mediaRecorder.onstart = () => {
+            console.log('Recording started ✅');
+            isRecording = true;
+            updateUIrecording(true);
+          };
+          
+          mediaRecorder.onerror = e => {
+            console.error('Recording error ❌', e);
+            isRecording = false;
+            updateUIrecording(false);
+          };
+          
+          mediaRecorder.onstop = () => {
+            console.log('Recording stopped');
+            isRecording = false;
+            updateUIrecording(false);
+            
+            const blob = new Blob(chunks, { type: supported });
+            const recordingURL = URL.createObjectURL(blob);
+            document.getElementById('recording-preview').src = recordingURL;
+            document.getElementById('recording-modal').style.display = 'flex';
+            
+            // Clean up
+            stream.getTracks().forEach(track => track.stop());
+          };
 
-      document.addEventListener('touchend', () => {
-        isDragging = false;
-      });
+          mediaRecorder.start();
+          console.log('mediaRecorder.start() called');
 
+        } catch (err) {
+          console.error('Caught error:', err);
+          isRecording = false;
+          updateUIrecording(false);
+          alert("فشل: " + err.message);
+        }
+      };
+
+      // [Rest of your existing JavaScript code remains exactly the same]
       // Cyrus AI Elements
       const aiCircle = document.getElementById('ai-circle');
       const videoCircle = document.getElementById('video-circle'); 
