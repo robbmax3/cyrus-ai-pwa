@@ -428,33 +428,7 @@
       align-self: flex-start; 
     }
 
-    #input-area { 
-      display: flex; 
-      padding: 10px; 
-      border-top: 1px solid #333; 
-      background-color: #1e1e1e; 
-      flex-shrink: 0; 
-      align-items: center;
-    }
-    #user-input { 
-      flex-grow: 1; 
-      background-color: #2b2b2b; 
-      border: none; 
-      border-radius: 20px; 
-      padding: 12px 15px; 
-      color: white; 
-      font-size: 16px; 
-      transition: box-shadow 0.2s;
-    }
-    #user-input:focus {
-      outline: none;
-      box-shadow: 0 0 0 2px #00aaff;
-    }
-    #user-input:disabled {
-      background-color: #222;
-    }
-
-    /* Feed Container Styles */
+    /* --- Feed Container Styles --- */
     #feed-container { 
       padding: 10px; 
       scrollbar-width: none; 
@@ -541,7 +515,7 @@
       flex-direction: column; 
     }
 
-    /* Novel Mind Tab Styles */
+    /* --- Novel Mind Tab Styles --- */
     #mind-box-container { padding: 20px; }
     #mind-box-container::-webkit-scrollbar {
       display: none; 
@@ -562,7 +536,7 @@
       font-size: 15px; 
     }
 
-    /* Recording Modal */
+    /* --- Recording Modal --- */
     #recording-modal {
       display: none;
       position: fixed;
@@ -704,9 +678,14 @@
     let mediaRecorder;
     let stream;
     let chunks = [];
+    let isRecording = false;
+    let recordingStartTime;
 
     async function startRecording() {
       try {
+        document.getElementById('screen-record-btn').classList.add('recording');
+        document.getElementById('recording-indicator').style.display = 'block';
+        
         stream = await navigator.mediaDevices.getDisplayMedia({ 
           video: true, 
           audio: true 
@@ -746,6 +725,8 @@
         });
 
         mediaRecorder.start(100); // Collect data every 100ms
+        isRecording = true;
+        recordingStartTime = Date.now();
         updateUIrecording(true);
 
       } catch (err) {
@@ -759,6 +740,7 @@
       if (mediaRecorder && mediaRecorder.state === 'recording') {
         mediaRecorder.stop();
       }
+      isRecording = false;
       cleanupStream();
     }
 
@@ -795,6 +777,15 @@
       URL.revokeObjectURL(a.href);
     }
 
+    function showPipNotification(message) {
+      const pipNotification = document.getElementById('pip-notification');
+      pipNotification.textContent = message;
+      pipNotification.style.display = 'block';
+      setTimeout(() => {
+        pipNotification.style.display = 'none';
+      }, 3000);
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
       // Floating Assistant Button
       const floatingAssistant = document.getElementById('floating-assistant');
@@ -808,8 +799,6 @@
       let isDragging = false;
       let offsetX = 0;
       let offsetY = 0;
-      let isRecording = false;
-      let recordingStartTime;
 
       // Recording modal event listeners
       saveRecordingBtn.addEventListener('click', () => {
@@ -922,14 +911,6 @@
       let videoPlayed = false;
 
       // Enhanced Picture-in-Picture functionality
-      function showPipNotification(message) {
-        pipNotification.textContent = message;
-        pipNotification.style.display = 'block';
-        setTimeout(() => {
-          pipNotification.style.display = 'none';
-        }, 3000);
-      }
-
       async function toggleAiVideoPip() {
         if (!aiVideo || aiVideo.readyState < 2) {
           showPipNotification("Video not ready yet");
