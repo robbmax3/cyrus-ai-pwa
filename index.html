@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
@@ -40,6 +40,146 @@
     }
     #floating-assistant.dragging {
       cursor: grabbing;
+    }
+    #floating-assistant.recording {
+      background: #ff3b30;
+      animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(255, 59, 48, 0.7); }
+      70% { box-shadow: 0 0 0 15px rgba(255, 59, 48, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(255, 59, 48, 0); }
+    }
+
+    /* Recording Indicator */
+    #recording-indicator {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      background: #ff3b30;
+      color: white;
+      padding: 5px 10px;
+      border-radius: 15px;
+      font-size: 12px;
+      display: none;
+      z-index: 10001;
+    }
+
+    /* Screen recording button styles */
+    #screen-record-btn {
+      background: none;
+      border: none;
+      color: #888;
+      font-size: 24px;
+      cursor: pointer;
+      padding: 8px;
+      border-radius: 50%;
+      transition: all 0.2s;
+      margin-left: 10px;
+    }
+    
+    #screen-record-btn:hover {
+      color: #ff3b30;
+      background-color: rgba(255, 59, 48, 0.1);
+    }
+    
+    #screen-record-btn.recording {
+      color: #ff3b30;
+      animation: pulse 1.5s infinite;
+    }
+
+    /* Video Analyzer Styles */
+    #video-analyzer {
+      display: none;
+      position: fixed;
+      width: 90%;
+      max-width: 600px;
+      height: 80vh;
+      background-color: #1e1e1e;
+      border-radius: 20px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+      z-index: 9998;
+      flex-direction: column;
+      overflow: hidden;
+      border: 1px solid #333;
+      cursor: grab;
+      touch-action: none;
+    }
+    
+    #video-analyzer.dragging {
+      cursor: grabbing;
+    }
+    
+    #video-analyzer-content {
+      padding: 20px;
+      overflow-y: auto;
+      flex-grow: 1;
+    }
+    
+    #video-analyzer h2 {
+      margin-top: 0;
+      color: #00aaff;
+      padding: 15px;
+      border-bottom: 1px solid #333;
+    }
+    
+    #analyzer-video {
+      width: 100%;
+      max-height: 300px;
+      background-color: #000;
+      border-radius: 10px;
+    }
+    
+    #analyzer-frames {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-top: 15px;
+    }
+    
+    #analyzer-frames img {
+      margin: 6px;
+      border: 2px solid #444;
+      border-radius: 8px;
+      max-width: 120px;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    
+    #analyzer-frames img:hover {
+      transform: scale(1.05);
+      border-color: #00aaff;
+    }
+    
+    #analyzer-controls {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+    }
+    
+    .analyzer-btn {
+      padding: 8px 15px;
+      border: none;
+      border-radius: 5px;
+      background-color: #007aff;
+      color: white;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    
+    #analyzer-close-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: none;
+      border: none;
+      color: #888;
+      font-size: 20px;
+      cursor: pointer;
+    }
+    
+    #analyzer-close-btn:hover {
+      color: #ff3b30;
     }
 
     /* --- Floating Buttons (AI Circle, Video Circle) --- */
@@ -278,13 +418,6 @@
     #video-pip-button:hover {
       background-color: rgba(0, 0, 0, 0.8);
     }
-    #video-pip-button::before {
-      content: '❐'; /* Unicode for a square/window shape */
-      margin-right: 4px;
-      font-size: 1.2em;
-      line-height: 1;
-      vertical-align: middle;
-    }
     #video-pip-button.pip-active {
       background-color: #00aaff;
       color: #1e1e1e;
@@ -395,6 +528,7 @@
       border-top: 1px solid #333; 
       background-color: #1e1e1e; 
       flex-shrink: 0; 
+      align-items: center;
     }
     #user-input { 
       flex-grow: 1; 
@@ -521,11 +655,98 @@
       margin: 5px 0; 
       font-size: 15px; 
     }
+
+    /* Recording Modal */
+    #recording-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.8);
+      z-index: 10002;
+      justify-content: center;
+      align-items: center;
+    }
+    #recording-modal-content {
+      background-color: #1e1e1e;
+      padding: 20px;
+      border-radius: 10px;
+      max-width: 500px;
+      width: 90%;
+      text-align: center;
+    }
+    #recording-preview {
+      width: 100%;
+      max-height: 300px;
+      margin: 10px 0;
+      background-color: #000;
+    }
+    #recording-actions {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 15px;
+    }
+    .recording-btn {
+      padding: 8px 15px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    #save-recording {
+      background-color: #007aff;
+      color: white;
+    }
+    #discard-recording {
+      background-color: #ff3b30;
+      color: white;
+    }
+    #analyze-recording {
+      background-color: #34c759;
+      color: white;
+    }
   </style>
 </head>
 <body>
   <!-- Floating Assistant Button -->
   <div id="floating-assistant">💬</div>
+  <div id="recording-indicator">Recording...</div>
+
+  <!-- Recording Modal -->
+  <div id="recording-modal">
+    <div id="recording-modal-content">
+      <h3>Screen Recording</h3>
+      <video id="recording-preview" controls></video>
+      <div id="recording-actions">
+        <button id="save-recording" class="recording-btn">Save Recording</button>
+        <button id="analyze-recording" class="recording-btn">Analyze</button>
+        <button id="discard-recording" class="recording-btn">Discard</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Video Analyzer -->
+  <div id="video-analyzer">
+    <button id="analyzer-close-btn">✕</button>
+    <h2>🎥 Screen Video Analyzer</h2>
+    <div id="video-analyzer-content">
+      <label for="analyzer-video-input">📁 Select a screen recording video file:</label><br>
+      <input type="file" accept="video/*" id="analyzer-video-input"><br><br>
+      
+      <video id="analyzer-video" controls></video><br><br>
+      
+      <div id="analyzer-controls">
+        <button id="analyze-btn" class="analyzer-btn">🔍 Start Analyzing</button>
+        <button id="clear-frames-btn" class="analyzer-btn">🗑️ Clear Frames</button>
+      </div>
+      
+      <h3>📸 Extracted Frames:</h3>
+      <div id="analyzer-frames"></div>
+    </div>
+  </div>
 
   <!-- Floating Buttons -->
   <div id="ai-circle" class="floating-circle">
@@ -571,6 +792,7 @@
       <div id="cyrus-log"></div>
       <div id="input-area">
         <input type="text" id="user-input" placeholder="Converse with Cyrus..." />
+        <button id="screen-record-btn" title="Start screen recording">🎥</button>
       </div>
     </div>
     <div id="feed-container" class="content-area hidden"></div>
@@ -600,52 +822,241 @@
     document.addEventListener('DOMContentLoaded', () => {
       // Floating Assistant Button
       const floatingAssistant = document.getElementById('floating-assistant');
+      const recordingIndicator = document.getElementById('recording-indicator');
+      const recordingModal = document.getElementById('recording-modal');
+      const recordingPreview = document.getElementById('recording-preview');
+      const saveRecordingBtn = document.getElementById('save-recording');
+      const analyzeRecordingBtn = document.getElementById('analyze-recording');
+      const discardRecordingBtn = document.getElementById('discard-recording');
+      const screenRecordBtn = document.getElementById('screen-record-btn');
+      
+      // Video Analyzer Elements
+      const videoAnalyzer = document.getElementById('video-analyzer');
+      const analyzerVideoInput = document.getElementById('analyzer-video-input');
+      const analyzerVideo = document.getElementById('analyzer-video');
+      const analyzerFrames = document.getElementById('analyzer-frames');
+      const analyzeBtn = document.getElementById('analyze-btn');
+      const clearFramesBtn = document.getElementById('clear-frames-btn');
+      const analyzerCloseBtn = document.getElementById('analyzer-close-btn');
+      
       let isDragging = false;
       let offsetX = 0;
       let offsetY = 0;
+      let mediaRecorder;
+      let recordedChunks = [];
+      let isRecording = false;
+      let recordingStartTime;
 
-      // --- Desktop Drag ---
-      floatingAssistant.addEventListener('mousedown', (e) => {
-        isDragging = true;
-        offsetX = e.clientX - floatingAssistant.getBoundingClientRect().left;
-        offsetY = e.clientY - floatingAssistant.getBoundingClientRect().top;
-        floatingAssistant.style.cursor = 'grabbing';
+      // --- Screen Recording Functions ---
+      async function startRecording() {
+        try {
+          recordedChunks = [];
+          const stream = await navigator.mediaDevices.getDisplayMedia({
+            video: true,
+            audio: true
+          });
+          
+          mediaRecorder = new MediaRecorder(stream, {
+            mimeType: 'video/webm'
+          });
+          
+          mediaRecorder.ondataavailable = (e) => {
+            if (e.data.size > 0) {
+              recordedChunks.push(e.data);
+            }
+          };
+          
+          mediaRecorder.onstop = () => {
+            const blob = new Blob(recordedChunks, { type: 'video/webm' });
+            const recordingURL = URL.createObjectURL(blob);
+            recordingPreview.src = recordingURL;
+            showRecordingModal();
+            stopRecordingUI();
+          };
+          
+          mediaRecorder.start(100); // Collect data every 100ms
+          isRecording = true;
+          recordingStartTime = Date.now();
+          startRecordingUI();
+          
+          // Handle when user stops sharing screen
+          stream.getVideoTracks()[0].onended = () => {
+            if (isRecording) {
+              mediaRecorder.stop();
+              stream.getTracks().forEach(track => track.stop());
+            }
+          };
+          
+        } catch (err) {
+          console.error('Error starting recording:', err);
+          showPipNotification("Recording failed to start");
+        }
+      }
+      
+      function stopRecording() {
+        if (mediaRecorder && isRecording) {
+          mediaRecorder.stop();
+          isRecording = false;
+        }
+      }
+      
+      function startRecordingUI() {
+        floatingAssistant.classList.add('recording');
+        recordingIndicator.style.display = 'block';
+        floatingAssistant.textContent = '⏺️';
+        screenRecordBtn.classList.add('recording');
+      }
+      
+      function stopRecordingUI() {
+        floatingAssistant.classList.remove('recording');
+        recordingIndicator.style.display = 'none';
+        floatingAssistant.textContent = '💬';
+        screenRecordBtn.classList.remove('recording');
+      }
+      
+      function showRecordingModal() {
+        recordingModal.style.display = 'flex';
+      }
+      
+      function hideRecordingModal() {
+        recordingModal.style.display = 'none';
+        recordingPreview.src = '';
+      }
+      
+      function downloadRecording() {
+        const blob = new Blob(recordedChunks, { type: 'video/webm' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = `screen-recording-${new Date().toISOString().replace(/[:.]/g, '-')}.webm`;
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => {
+          document.body.removeChild(a);
+          window.URL.revokeObjectURL(url);
+        }, 100);
+      }
+      
+      // Recording modal event listeners
+      saveRecordingBtn.addEventListener('click', () => {
+        downloadRecording();
+        hideRecordingModal();
+      });
+      
+      analyzeRecordingBtn.addEventListener('click', () => {
+        hideRecordingModal();
+        showVideoAnalyzer(recordingPreview.src);
+      });
+      
+      discardRecordingBtn.addEventListener('click', () => {
+        hideRecordingModal();
       });
 
-      document.addEventListener('mousemove', (e) => {
-        if (!isDragging) return;
-        floatingAssistant.style.left = `${e.clientX - offsetX}px`;
-        floatingAssistant.style.top = `${e.clientY - offsetY}px`;
-        floatingAssistant.style.right = 'auto';
-        floatingAssistant.style.bottom = 'auto';
+      // Screen record button click handler
+      screenRecordBtn.addEventListener('click', () => {
+        if (isRecording) {
+          stopRecording();
+        } else {
+          startRecording();
+        }
       });
 
-      document.addEventListener('mouseup', () => {
-        isDragging = false;
-        floatingAssistant.style.cursor = 'grab';
+      // --- Video Analyzer Functions ---
+      function showVideoAnalyzer(videoSrc = null) {
+        videoAnalyzer.style.display = 'flex';
+        
+        // Position analyzer near the floating assistant
+        const assistantRect = floatingAssistant.getBoundingClientRect();
+        let desiredLeft = assistantRect.left - videoAnalyzer.offsetWidth - 20;
+        
+        if (desiredLeft < 0) {
+          desiredLeft = assistantRect.right + 20;
+          if (desiredLeft + videoAnalyzer.offsetWidth > window.innerWidth) {
+            desiredLeft = (window.innerWidth - videoAnalyzer.offsetWidth) / 2;
+          }
+        }
+        
+        let desiredTop = assistantRect.top;
+        if (desiredTop + videoAnalyzer.offsetHeight > window.innerHeight) {
+          desiredTop = window.innerHeight - videoAnalyzer.offsetHeight - 20;
+        }
+        
+        videoAnalyzer.style.left = `${desiredLeft}px`;
+        videoAnalyzer.style.top = `${desiredTop}px`;
+        
+        if (videoSrc) {
+          analyzerVideo.src = videoSrc;
+          showPipNotification("Loaded recording for analysis");
+        }
+      }
+      
+      function hideVideoAnalyzer() {
+        videoAnalyzer.style.display = 'none';
+        analyzerVideo.src = '';
+        analyzerFrames.innerHTML = '';
+      }
+      
+      analyzerCloseBtn.addEventListener('click', hideVideoAnalyzer);
+      
+      analyzerVideoInput.addEventListener('change', () => {
+        const file = analyzerVideoInput.files[0];
+        if (file) {
+          const url = URL.createObjectURL(file);
+          analyzerVideo.src = url;
+          showPipNotification("✅ Video loaded successfully.");
+        }
+      });
+      
+      async function captureFrames() {
+        if (!analyzerVideo.src) {
+          showPipNotification("❗ Please select a video file first.");
+          return;
+        }
+
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+
+        await analyzerVideo.play();
+        analyzerVideo.pause();
+
+        const duration = analyzerVideo.duration;
+        canvas.width = analyzerVideo.videoWidth;
+        canvas.height = analyzerVideo.videoHeight;
+
+        analyzerFrames.innerHTML = "";
+
+        showPipNotification("🚀 Starting frame extraction...");
+
+        for (let t = 0; t < duration; t += 2) {
+          showPipNotification(`⏱️ Capturing frame at ${t.toFixed(0)} seconds...`);
+          analyzerVideo.currentTime = t;
+          await new Promise(r => analyzerVideo.onseeked = r);
+
+          ctx.drawImage(analyzerVideo, 0, 0, canvas.width, canvas.height);
+          const imgURL = canvas.toDataURL("image/png");
+
+          const img = document.createElement("img");
+          img.src = imgURL;
+          img.width = 160;
+          analyzerFrames.appendChild(img);
+        }
+
+        showPipNotification("✅ Frame extraction complete!");
+      }
+      
+      analyzeBtn.addEventListener('click', captureFrames);
+      
+      clearFramesBtn.addEventListener('click', () => {
+        analyzerFrames.innerHTML = '';
+        showPipNotification("Frames cleared");
       });
 
-      // --- Mobile Touch Drag ---
-      floatingAssistant.addEventListener('touchstart', (e) => {
-        isDragging = true;
-        const touch = e.touches[0];
-        offsetX = touch.clientX - floatingAssistant.getBoundingClientRect().left;
-        offsetY = touch.clientY - floatingAssistant.getBoundingClientRect().top;
-      });
+      // Make the video analyzer draggable
+      videoAnalyzer.addEventListener('mousedown', (e) => startDrag(e, videoAnalyzer));
+      videoAnalyzer.addEventListener('touchstart', (e) => startDrag(e, videoAnalyzer));
 
-      document.addEventListener('touchmove', (e) => {
-        if (!isDragging) return;
-        const touch = e.touches[0];
-        floatingAssistant.style.left = `${touch.clientX - offsetX}px`;
-        floatingAssistant.style.top = `${touch.clientY - offsetY}px`;
-        floatingAssistant.style.right = 'auto';
-        floatingAssistant.style.bottom = 'auto';
-      });
-
-      document.addEventListener('touchend', () => {
-        isDragging = false;
-      });
-
+      // [Rest of your existing code...]
       // Cyrus AI Elements
       const aiCircle = document.getElementById('ai-circle');
       const videoCircle = document.getElementById('video-circle'); 
@@ -866,6 +1277,9 @@
         if (element === videoBox && (e.target.closest('#video-play-pause-button') || e.target.closest('#video-pip-button')) && !e.target.closest('#video-box')) {
           return; 
         }
+        if (element === videoAnalyzer && (e.target.closest('#analyzer-close-btn') || e.target.closest('#analyzer-controls')) && !e.target.closest('#video-analyzer')) {
+          return;
+        }
 
         _isDragging = true;
         _draggedElement = element;
@@ -884,6 +1298,7 @@
         const interfaceRect = getElementCoords(cyrusInterface);
         const videoCircleCoords = getElementCoords(videoCircle);
         const videoBoxCoords = getElementCoords(videoBox);
+        const analyzerCoords = getElementCoords(videoAnalyzer);
 
         if (element === aiCircle || element === cyrusInterface) {
           _interfaceOffsetX = interfaceRect.x - aiCoords.x;
@@ -892,6 +1307,9 @@
         if (element === videoCircle || element === videoBox) {
           _videoBoxOffsetX = videoBoxCoords.x - videoCircleCoords.x;
           _videoBoxOffsetY = videoBoxCoords.y - videoCircleCoords.y;
+        }
+        if (element === videoAnalyzer) {
+          // No linked elements for analyzer
         }
 
         document.body.style.userSelect = 'none';
@@ -949,6 +1367,8 @@
       videoCircle.addEventListener('touchstart', (e) => startDrag(e, videoCircle)); 
       videoBox.addEventListener('mousedown', (e) => startDrag(e, videoBox)); 
       videoBox.addEventListener('touchstart', (e) => startDrag(e, videoBox)); 
+      videoAnalyzer.addEventListener('mousedown', (e) => startDrag(e, videoAnalyzer));
+      videoAnalyzer.addEventListener('touchstart', (e) => startDrag(e, videoAnalyzer));
 
       document.addEventListener('mousemove', doDrag);
       document.addEventListener('touchmove', doDrag, { passive: false }); 
@@ -1234,7 +1654,7 @@
         }
 
 
-        async generateText(prompt, threadContext = "") { 
+        async function generateText(prompt, threadContext = "") { 
           const lowerPrompt = prompt.toLowerCase();
           const sanitizedPrompt = lowerPrompt.replace(/[.,!?]/g, '').trim(); 
           let response;
@@ -1267,6 +1687,11 @@
             createNewPost(); 
             response = "I've added a new thought to my feed. You can check it in the Feed tab.";
             return response; 
+          }
+          else if (sanitizedPrompt.includes("analyze") || sanitizedPrompt.includes("recording") || sanitizedPrompt.includes("video")) {
+            showVideoAnalyzer();
+            response = "I've opened the video analyzer. You can upload a recording to extract frames.";
+            return response;
           }
           else if (threadContext) { 
             if (sanitizedPrompt.includes("tell more") || sanitizedPrompt.includes("explain")) { response = "That's a super cool thought. What aspect of it do you find most important?"; }
@@ -1590,12 +2015,14 @@
       loadElementPosition(cyrusInterface);
       loadElementPosition(videoCircle); 
       loadElementPosition(videoBox); 
+      loadElementPosition(videoAnalyzer);
 
       // Calculate initial offsets based on loaded/default positions
       const aiRectInitial = aiCircle.getBoundingClientRect();
       const interfaceRectInitial = cyrusInterface.getBoundingClientRect();
       const videoCircleRectInitial = videoCircle.getBoundingClientRect();
       const videoBoxRectInitial = videoBox.getBoundingClientRect();
+      const analyzerRectInitial = videoAnalyzer.getBoundingClientRect();
 
       _interfaceOffsetX = interfaceRectInitial.left - aiRectInitial.left;
       _interfaceOffsetY = interfaceRectInitial.top - aiRectInitial.top;
@@ -1645,35 +2072,88 @@
 
       mainVideo.load(); 
 
-      // Make floating assistant button toggle Cyrus interface
+      // Make floating assistant button toggle Cyrus interface or start/stop recording
       floatingAssistant.addEventListener('click', (e) => {
         if (isDragging) return;
         
-        // Toggle Cyrus interface visibility
-        if (cyrusInterface.style.display === 'flex') {
-          cyrusInterface.style.display = 'none';
+        // Long press (1 second) to start/stop recording
+        if (e.timeStamp - (e.currentTarget.dataset.lastTap || 0) < 300) {
+          // Double tap - toggle recording
+          clearTimeout(e.currentTarget.dataset.holdTimeout);
+          
+          if (isRecording) {
+            stopRecording();
+          } else {
+            startRecording();
+          }
         } else {
-          cyrusInterface.style.display = 'flex';
-          // Position Cyrus interface near the floating assistant
-          const assistantRect = floatingAssistant.getBoundingClientRect();
-          let desiredLeft = assistantRect.left - cyrusInterface.offsetWidth - 20;
-          
-          if (desiredLeft < 0) {
-            desiredLeft = assistantRect.right + 20;
-            if (desiredLeft + cyrusInterface.offsetWidth > window.innerWidth) {
-              desiredLeft = (window.innerWidth - cyrusInterface.offsetWidth) / 2;
+          // Single tap - toggle Cyrus interface
+          if (cyrusInterface.style.display === 'flex') {
+            cyrusInterface.style.display = 'none';
+            clearTimeout(activityTimeoutId); 
+            Cyrus.speech.cancel(); 
+            stopWaveAnimation(); 
+          } else {
+            cyrusInterface.style.display = 'flex';
+            // Position Cyrus interface near the floating assistant
+            const assistantRect = floatingAssistant.getBoundingClientRect();
+            let desiredLeft = assistantRect.left - cyrusInterface.offsetWidth - 20;
+            
+            if (desiredLeft < 0) {
+              desiredLeft = assistantRect.right + 20;
+              if (desiredLeft + cyrusInterface.offsetWidth > window.innerWidth) {
+                desiredLeft = (window.innerWidth - cyrusInterface.offsetWidth) / 2;
+              }
             }
+            
+            let desiredTop = assistantRect.top;
+            if (desiredTop + cyrusInterface.offsetHeight > window.innerHeight) {
+              desiredTop = window.innerHeight - cyrusInterface.offsetHeight - 20;
+            }
+            
+            cyrusInterface.style.left = `${desiredLeft}px`;
+            cyrusInterface.style.top = `${desiredTop}px`;
+            userInput.focus();
           }
-          
-          let desiredTop = assistantRect.top;
-          if (desiredTop + cyrusInterface.offsetHeight > window.innerHeight) {
-            desiredTop = window.innerHeight - cyrusInterface.offsetHeight - 20;
-          }
-          
-          cyrusInterface.style.left = `${desiredLeft}px`;
-          cyrusInterface.style.top = `${desiredTop}px`;
-          userInput.focus();
         }
+        
+        e.currentTarget.dataset.lastTap = e.timeStamp;
+      });
+      
+      // Long press handler for recording
+      floatingAssistant.addEventListener('mousedown', (e) => {
+        if (isDragging) return;
+        floatingAssistant.dataset.holdTimeout = setTimeout(() => {
+          if (isRecording) {
+            stopRecording();
+          } else {
+            startRecording();
+          }
+        }, 1000);
+      });
+      
+      floatingAssistant.addEventListener('mouseup', (e) => {
+        clearTimeout(floatingAssistant.dataset.holdTimeout);
+      });
+      
+      floatingAssistant.addEventListener('mouseleave', (e) => {
+        clearTimeout(floatingAssistant.dataset.holdTimeout);
+      });
+      
+      // Touch events for mobile
+      floatingAssistant.addEventListener('touchstart', (e) => {
+        if (isDragging) return;
+        floatingAssistant.dataset.holdTimeout = setTimeout(() => {
+          if (isRecording) {
+            stopRecording();
+          } else {
+            startRecording();
+          }
+        }, 1000);
+      });
+      
+      floatingAssistant.addEventListener('touchend', (e) => {
+        clearTimeout(floatingAssistant.dataset.holdTimeout);
       });
     });
   </script>
