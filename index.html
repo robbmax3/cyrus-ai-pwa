@@ -613,13 +613,24 @@
     
     /* New Video Record Floating Button */
     #video-record-float {
+      position: fixed;
       bottom: 100px; /* Position above assistant button */
       right: 20px;
+      width: 70px;
+      height: 70px;
       background: #ffcc00; /* Distinct color */
-      border-color: rgba(255, 255, 0, 0.7);
+      border: 2px solid rgba(255, 255, 0, 0.7);
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
       font-size: 28px;
+      color: #1e1e1e;
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+      cursor: grab;
       z-index: 9999;
+      user-select: none;
+      touch-action: none;
     }
     #video-record-float:hover {
       box-shadow: 0 8px 25px rgba(255, 204, 0, 0.8);
@@ -732,6 +743,7 @@
       const saveRecordingBtn = document.getElementById('save-recording');
       const discardRecordingBtn = document.getElementById('discard-recording');
       const screenRecordBtn = document.getElementById('screen-record-btn');
+      const videoRecordBtn = document.getElementById('video-record-float');
       
       let isDragging = false;
       let offsetX = 0;
@@ -741,34 +753,60 @@
       let isRecording = false;
       let recordingStartTime;
 
-      // --- Screen Recording Functions ---
+      // --- Improved Screen Recording Functions ---
       async function startRecording() {
         try {
-          recordedChunks = [];
+          // First check if we have permission and can record
+          if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+            throw new Error("Screen recording not supported in this browser");
+          }
+
+          // Request screen capture
           const stream = await navigator.mediaDevices.getDisplayMedia({
-            video: true,
-            audio: true
+            video: {
+              displaySurface: 'browser', // or 'window' or 'monitor'
+              logicalSurface: true
+            },
+            audio: true,
+            systemAudio: 'include' // For Chrome's experimental feature
+          }).catch(err => {
+            console.error("User denied screen access:", err);
+            throw new Error("Screen sharing was denied");
           });
-          
+
+          recordedChunks = [];
           mediaRecorder = new MediaRecorder(stream, {
-            mimeType: 'video/webm'
+            mimeType: 'video/webm;codecs=vp9',
+            audioBitsPerSecond: 128000,
+            videoBitsPerSecond: 2500000
           });
-          
+
           mediaRecorder.ondataavailable = (e) => {
             if (e.data.size > 0) {
               recordedChunks.push(e.data);
             }
           };
-          
+
           mediaRecorder.onstop = () => {
             const blob = new Blob(recordedChunks, { type: 'video/webm' });
             const recordingURL = URL.createObjectURL(blob);
             recordingPreview.src = recordingURL;
             showRecordingModal();
             stopRecordingUI();
+            
+            // Clean up the stream
+            stream.getTracks().forEach(track => track.stop());
           };
-          
-          mediaRecorder.start(100); // Collect data every 100ms
+
+          mediaRecorder.onerror = (e) => {
+            console.error("MediaRecorder error:", e);
+            showPipNotification("Recording error occurred");
+            stopRecordingUI();
+            stream.getTracks().forEach(track => track.stop());
+          };
+
+          // Start recording with timeslice of 1 second
+          mediaRecorder.start(1000);
           isRecording = true;
           recordingStartTime = Date.now();
           startRecordingUI();
@@ -777,13 +815,13 @@
           stream.getVideoTracks()[0].onended = () => {
             if (isRecording) {
               mediaRecorder.stop();
-              stream.getTracks().forEach(track => track.stop());
             }
           };
           
         } catch (err) {
-          console.error('Error starting recording:', err);
-          showPipNotification("Recording failed to start");
+          console.error('Recording error:', err);
+          showPipNotification(err.message || "Recording failed to start");
+          stopRecordingUI();
         }
       }
       
@@ -850,6 +888,22 @@
           stopRecording();
         } else {
           startRecording();
+        }
+      });
+
+      // Initialize the video record button
+      videoRecordBtn.addEventListener('click', async () => {
+        try {
+          if (isRecording) {
+            stopRecording();
+          } else {
+            // Show a notification that we're starting
+            showPipNotification("Preparing to record your screen...");
+            await startRecording();
+          }
+        } catch (err) {
+          console.error("Recording error:", err);
+          showPipNotification(err.message || "Recording failed");
         }
       });
 
@@ -1200,6 +1254,8 @@
       videoCircle.addEventListener('touchstart', (e) => startDrag(e, videoCircle)); 
       videoBox.addEventListener('mousedown', (e) => startDrag(e, videoBox)); 
       videoBox.addEventListener('touchstart', (e) => startDrag(e, videoBox)); 
+      videoRecordBtn.addEventListener('mousedown', (e) => startDrag(e, videoRecordBtn));
+      videoRecordBtn.addEventListener('touchstart', (e) => startDrag(e, videoRecordBtn));
 
       document.addEventListener('mousemove', doDrag);
       document.addEventListener('touchmove', doDrag, { passive: false }); 
@@ -1837,28 +1893,11 @@
         el.style.top = y ? `${y}px` : '20px';
       }
 
-      // Get the new floating recording button
-      const videoRecordBtn = document.getElementById('video-record-float');
-
-      // Setup dragging for the new button
-      videoRecordBtn.addEventListener('mousedown', (e) => startDrag(e, videoRecordBtn));
-      videoRecordBtn.addEventListener('touchstart', (e) => startDrag(e, videoRecordBtn));
-
-      // Setup click handler for screen recording
-      videoRecordBtn.addEventListener('click', () => {
-        resetActivityTimeout(); // Reset inactivity timer
-        if (isRecording) {
-          stopRecording();
-        } else {
-          startRecording();
-        }
-      });
-
       loadElementPosition(aiCircle);
       loadElementPosition(cyrusInterface);
       loadElementPosition(videoCircle); 
       loadElementPosition(videoBox); 
-      loadElementPosition(videoRecordBtn); // Load position for new button
+      loadElementPosition(videoRecordBtn);
 
       // Calculate initial offsets based on loaded/default positions
       const aiRectInitial = aiCircle.getBoundingClientRect();
